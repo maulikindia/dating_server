@@ -39,7 +39,7 @@ app.use(function (err, req, res, next) {
 });
 // require('./config/db')
 
-app.listen(5500, function (err) {
+app.listen(process.env.PORT || 5500, function (err) {
   if (err) {
     throw Error('Error while running server', err)
   }
