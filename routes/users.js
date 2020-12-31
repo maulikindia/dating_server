@@ -83,7 +83,7 @@ router.post('/login', async function (req, res) {
       return res.json({ status: 400, msg: 'Please enter password' })
     }
 
-    let query = `select * from user where email='${email}' and password=${password}`;
+    let query = `select * from user where email='${email}' and password='${password}'`;
     db.query(query, async function (err, result) {
       if (err) {
         return res.json({ status: 500, msg: 'Error while querying ', err: err })
