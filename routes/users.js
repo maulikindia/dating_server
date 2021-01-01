@@ -105,7 +105,7 @@ router.post('/login', async function (req, res) {
 //social login
 router.post('/socialLogin', async function (req, res) {
   try {
-    let { email, socialId, authToken, imgUrl } = req.body;
+    let { name, email, socialId, authToken, imgUrl } = req.body;
     let checkExisitingUser = ''
     if (authToken) {
       if (email) {
@@ -124,8 +124,8 @@ router.post('/socialLogin', async function (req, res) {
             result = JSON.parse(JSON.stringify(result))
 
             const id = result[0].id;
-            let updateQuery = `UPDATE  user SET email='${email}',user_id='${socialId}', img_url='${imgUrl}',auth_token='${authToken}'  where id=${id}`;
-            db.query(updateQuery, async function (err, result, fields) {
+            let updateQuery = `UPDATE  user SET  name='${name}',email='${email}',user_id='${socialId}', img_url='${imgUrl}',auth_token='${authToken}'  where id=${id}`;
+            db.query(updateQuery, async function (err, result) {
               if (err) {
                 return res.json({ status: 500, msg: 'error while updating social profile', err: err });
               }
@@ -144,7 +144,7 @@ router.post('/socialLogin', async function (req, res) {
             })
           }
           else {
-            let query = `INSERT INTO user (email,user_id,auth_token,img_url) VALUES ('${email}',  '${socialId}' , '${authToken}', '${imgUrl}' )`;
+            let query = `INSERT INTO user (name,email,user_id,auth_token,img_url) VALUES ('${name}','${email}',  '${socialId}' , '${authToken}', '${imgUrl}' )`;
             db.query(query, async function (err, result) {
               if (err) {
                 return res.json({ msg: 'error while updating social profile', err: err });
