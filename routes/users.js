@@ -202,4 +202,36 @@ router.get('/video', async function (req, res) {
 });
 
 
+//Random video
+router.get('/randomVideo', async function (req, res) {
+  try {
+    let { random } = req.query;
+    if (random && random === "video") {
+      const query = 'select * from video';
+      db.query(query, function (err, result) {
+        if (err) {
+          return res.json({ status: 500, msg: 'Error while querying data', data: null })
+        }
+        else {
+          result = JSON.parse(JSON.stringify(result));
+          if (result.length === 0) {
+            return res.json({ status: 200, msg: 'Oops , There is no video found !!', data: null })
+          }
+          else {
+            const firstRandomElement = result[Math.floor(Math.random() * result.length)];
+            return res.json({ status: 200, msg: 'Video fetched sucessfully', data: firstRandomElement })
+          }
+        }
+
+      })
+    }
+    else {
+      return res.json({ status: 400, msg: 'Please enter valid key' })
+    }
+
+  } catch (error) {
+    return res.json({ status: 500, msg: 'Error while getting random video', err: error })
+  }
+})
+
 module.exports = router;
