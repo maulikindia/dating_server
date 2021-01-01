@@ -176,4 +176,30 @@ router.post('/socialLogin', async function (req, res) {
 });
 
 
+//get videos
+router.get('/video', async function (req, res) {
+  try {
+    const query = 'select * from video';
+    db.query(query, async function (err, result) {
+      if (err) {
+        return res.json({ status: 500, msg: 'Error while querying data', err: err });
+      }
+      else {
+        result = JSON.parse(JSON.stringify(result));
+
+        if (result.length === 0) {
+          return res.json({ status: 200, msg: 'No videos found.', data: null });
+        }
+        else {
+          return res.json({ status: 200, msg: 'Videos fetched sucessfully', data: result });
+        }
+      }
+
+    })
+  } catch (error) {
+    return res.json({ status: 500, msg: 'Error while fetching videos', err: error })
+  }
+});
+
+
 module.exports = router;
