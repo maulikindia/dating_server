@@ -12,8 +12,15 @@ const db = mysql.createConnection({
 db.connect((err) => {
     if (!err)
         console.log('Connection Established Successfully');
-    else
+    else if (err.code !== 'PROTOCOL_CONNECTION_LOST') {
+        console.log("PROTOCOL_CONNECTION_LOST");
+        // throw err;
         console.log('Connection Failed!' + JSON.stringify(err, undefined, 2));
+    }
+    else {
+        console.log('Connection Failed!' + JSON.stringify(err, undefined, 2));
+    }
+
 });
 
 module.exports = db;

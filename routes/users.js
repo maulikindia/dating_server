@@ -101,4 +101,79 @@ router.post('/login', async function (req, res) {
   }
 })
 
+
+//social login
+router.post('/socialLogin', async function (req, res) {
+  try {
+    let { email, socialId, authToken, imgUrl } = req.body;
+    let checkExisitingUser = ''
+    if (authToken) {
+      if (email) {
+        checkExisitingUser = `select * from user where email='${email}'`;
+      }
+      else if (socialId) {
+        checkExisitingUser = `select * from user where user_id='${socialId}'`;
+      }
+
+      db.query(checkExisitingUser, async function (err, result) {
+        if (err) {
+          return res.json({ msg: 'error while querying data', err: err });
+        }
+        else {
+          if (result.length) {
+            result = JSON.parse(JSON.stringify(result))
+
+            const id = result[0].id;
+            let updateQuery = `UPDATE  user SET email='${email}',user_id='${socialId}', img_url='${imgUrl}',auth_token='${authToken}'  where id=${id}`;
+            db.query(updateQuery, async function (err, result, fields) {
+              if (err) {
+                return res.json({ status: 500, msg: 'error while updating social profile', err: err });
+              }
+              else {
+                let query = `select * from user where id=${id}`;
+                db.query(query, async function (err, result) {
+                  if (err) {
+                    return res.json({ msg: 'error while updating social profile', err: err });
+                  }
+                  else {
+                    result = JSON.parse(JSON.stringify(result))
+                    return res.json({ status: 200, msg: 'Social Login Sucessful', data: result[0] });
+                  }
+                });
+              }
+            })
+          }
+          else {
+            let query = `INSERT INTO user (email,user_id,auth_token,img_url) VALUES ('${email}',  '${socialId}' , '${authToken}', '${imgUrl}' )`;
+            db.query(query, async function (err, result) {
+              if (err) {
+                return res.json({ msg: 'error while updating social profile', err: err });
+              }
+              else {
+                let id = result.insertId;
+                let query = `select * from user where id=${id}`;
+                db.query(query, async function (err, respo) {
+                  if (err) {
+                    return res.json({ msg: 'error while updating social profile', err: err });
+                  }
+                  else {
+                    respo = JSON.parse(JSON.stringify(respo))
+                    return res.json({ status: 200, msg: 'Social Login Sucessful', data: respo[0] });
+                  }
+                });
+              }
+            });
+          }
+        }
+      });
+    }
+    else {
+      return res.json({ status: 400, msg: 'Please provide auth token' })
+    }
+  } catch (error) {
+    return res.json({ status: 500, msg: 'Error in social login', err: error })
+  }
+});
+
+
 module.exports = router;
