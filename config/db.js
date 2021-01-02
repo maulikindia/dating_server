@@ -1,8 +1,9 @@
 
+/* mysql db connection 
 const mysql = require('mysql');
 
 const db = mysql.createConnection({
-    host: '166.62.28.102',
+    host: '123.201.115.108',
     user: 'dating_user',
     password: 'dating_user@123',
     database: 'dating_db'
@@ -24,3 +25,12 @@ db.connect((err) => {
 });
 
 module.exports = db;
+*/
+
+let mongoose = require('mongoose');
+mongoose.connect('mongodb+srv://dating_user:mj123bhalala007@cluster0.ubl45.mongodb.net/dating_db?retryWrites=true&w=majority', { useNewUrlParser: true, useUnifiedTopology: false }).then((db) => {
+    console.log('db connection sucessfuly;');
+}).catch((err) => {
+    console.log('db connection error');
+    throw err;
+})
