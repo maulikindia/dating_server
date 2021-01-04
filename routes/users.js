@@ -8,6 +8,7 @@ const userModel = require('../models/users');
 const dummyUsersModel = require('../models/dummy_users');
 const videoModel = require('../models/videos');
 const { count } = require('../models/users');
+const { find } = require('../models/videos');
 
 //register user -mysql
 // router.post('/register', async function (req, res) {
@@ -530,9 +531,13 @@ router.get('/randomVideo', async function (req, res) {
 router.get('/dummyUser', async function (req, res) {
   try {
     const { country } = req.query;
+
     if (country === undefined || !country || country === '') {
+      return res.json({ status: 400, msg: 'Please provide valid country name' })
+    }
+    if (country === "All") {
       const usersData = await dummyUsersModel.find({}).lean().exec();
-      return res.json({ status: 200, msg: 'Dummy users fetched sucessfully', data: usersData })
+      return res.json({ status: 200, msg: 'All Country users fetched sucessfully', data: usersData })
     }
     else {
       const usersData = await dummyUsersModel.find({ country: country }).lean().exec();
@@ -542,12 +547,10 @@ router.get('/dummyUser', async function (req, res) {
       else {
         return res.json({ status: 400, msg: `No users found for country -${country}` })
       }
-
     }
   } catch (error) {
     return res.json({ status: 500, msg: 'Error while getting random video', err: error })
   }
 
 })
-
 module.exports = router;
