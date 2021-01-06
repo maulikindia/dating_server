@@ -29,6 +29,11 @@ let usersSchema = new mongoose.Schema({
     {
         type: String,
         defualt: null
+    },
+    androidToken:
+    {
+        type: String,
+        default: null
     }
 
 })

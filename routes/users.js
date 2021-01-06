@@ -9,6 +9,7 @@ const dummyUsersModel = require('../models/dummy_users');
 const videoModel = require('../models/videos');
 const { count } = require('../models/users');
 const { find } = require('../models/videos');
+const { log } = require('debug');
 
 //register user -mysql
 // router.post('/register', async function (req, res) {
@@ -369,7 +370,7 @@ const { find } = require('../models/videos');
 //register -mongodb
 router.post('/register', async function (req, res) {
   try {
-    const { email, name, password } = req.body;
+    const { email, name, password, androidToken } = req.body;
     if (password === null || password === " " || password === null) {
       return res.json({ status: 400, msg: 'Please enter password' })
     }
@@ -378,7 +379,7 @@ router.post('/register', async function (req, res) {
     }
     const userCheck = await userModel.findOne({ email: email }).lean().exec();
     if (userCheck === undefined || userCheck === null) {
-      const addedUser = await userModel.create({ email, name, password });
+      const addedUser = await userModel.create({ email, name, password, androidToken });
       if (addedUser._id) {
         return res.json({ status: 200, msg: 'User register sucessfully', data: addedUser })
       }
@@ -398,7 +399,7 @@ router.post('/register', async function (req, res) {
 //login -mongodb
 router.post('/login', async function (req, res) {
   try {
-    const { email, password } = req.body;
+    const { email, password, androidToken } = req.body;
     if (email === undefined || email === null || email === "") {
       return res.json({ status: 400, msg: 'Please enter email' })
     }
@@ -406,11 +407,17 @@ router.post('/login', async function (req, res) {
     if (password === undefined || password === null || password === "") {
       return res.json({ status: 400, msg: 'Please enter password' })
     }
-    const user = await userModel.findOne({ email: email, password: password }).lean().exec();
+    let user = await userModel.findOne({ email: email, password: password }).lean().exec();
     if (user === undefined || user === null) {
       return res.json({ status: 400, msg: 'Email or Password Invalid ,Try again later ' })
     } else {
-      return res.json({ status: 200, msg: 'User loggedin sucessfully ', user: user })
+      await userModel.updateOne({ _id: user._id }, {
+        androidToken: androidToken
+      });
+
+      const updatedUser = await userModel.findOne({ _id: user._id }).lean().exec();
+
+      return res.json({ status: 200, msg: 'User loggedin sucessfully ', user: updatedUser })
     }
 
 
@@ -437,13 +444,14 @@ router.get('/countries', async function (req, res) {
 
 
 //function to update social login
-async function updateUser(id, name, email, userId, authToken, imgUrl) {
+async function updateUser(id, name, email, userId, authToken, imgUrl, androidToken) {
   const updatedUser = await userModel.findOne({ _id: id }).lean().exec();
   updatedUser.name = name;
   updatedUser.email = email;
   updatedUser.user_id = userId;
   updatedUser.img_url = imgUrl;
   updatedUser.auth_token = authToken;
+  updatedUser.androidToken = androidToken;
   await updatedUser;
   return updatedUser;
 }
@@ -451,7 +459,7 @@ async function updateUser(id, name, email, userId, authToken, imgUrl) {
 //Social login -mongodb
 router.post('/socialLogin', async function (req, res) {
   try {
-    let { name, email, socialId, authToken, imgUrl } = req.body;
+    let { name, email, socialId, authToken, imgUrl, androidToken } = req.body;
     console.log('body\n', req.body);
     let checkExisitingUser = null;;
     if (authToken) {
@@ -459,12 +467,12 @@ router.post('/socialLogin', async function (req, res) {
         checkExisitingUser = await userModel.findOne({ email: email }).lean().exec();
         if (checkExisitingUser === null) {
           console.log('sfdafsfds');
-          let socialUserAdded = await userModel.create({ name: name, email: email, user_id: socialId, img_url: imgUrl, auth_token: authToken });
+          let socialUserAdded = await userModel.create({ name: name, email: email, user_id: socialId, img_url: imgUrl, auth_token: authToken, androidToken: androidToken });
           return res.json({ status: 200, msg: 'Social Login Sucessful', data: socialUserAdded });
         }
         else {
           console.log('sdddd');
-          const updatedUser = await updateUser(checkExisitingUser._id, name, email, socialId, authToken, imgUrl)
+          const updatedUser = await updateUser(checkExisitingUser._id, name, email, socialId, authToken, imgUrl, androidToken)
           console.log('updatedUser', updatedUser);
           return res.json({ status: 200, msg: 'Social Login Sucessful', data: updatedUser });
         }
@@ -472,11 +480,11 @@ router.post('/socialLogin', async function (req, res) {
       else if (socialId) {
         checkExisitingUser = await userModel.findOne({ user_id: socialId }).lean().exec();
         if (checkExisitingUser === null) {
-          let socialUserAdded = await userModel.create({ name: name, email: email, user_id: socialId, img_url: imgUrl, auth_token: authToken });
+          let socialUserAdded = await userModel.create({ name: name, email: email, user_id: socialId, img_url: imgUrl, auth_token: authToken, androidToken: androidToken });
           return res.json({ status: 200, msg: 'Social Login Sucessful', data: socialUserAdded });
         }
         else {
-          const updatedUser = await updateUser(checkExisitingUser._id, name, email, socialId, authToken, imgUrl)
+          const updatedUser = await updateUser(checkExisitingUser._id, name, email, socialId, authToken, imgUrl, androidToken)
           return res.json({ status: 200, msg: 'Social Login Sucessful', data: updatedUser });
         }
       }
