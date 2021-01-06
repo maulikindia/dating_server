@@ -34,6 +34,10 @@ let usersSchema = new mongoose.Schema({
     {
         type: String,
         default: null
+    },
+    isLocked:
+    {
+        type: Boolean
     }
 
 })

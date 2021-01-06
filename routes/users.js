@@ -561,4 +561,38 @@ router.get('/dummyUser', async function (req, res) {
   }
 
 })
+
+
+//Update points and lock details
+router.post('/coins', async function (req, res) {
+  try {
+    let { coins, email, authToken } = req.body;
+    let checkForDetails
+    if (email !== undefined || email !== null || email !== '') {
+      checkForDetails = await userModel.findOne({ email: email }).lean().exec();
+    }
+
+    if (authToken !== undefined || authToken !== null || authToken !== '') {
+      checkForDetails = await userModel.findOne({ auth_token: authToken }).lean().exec();
+    }
+
+    if (checkForDetails !== undefined || checkForDetails !== null) {
+      await userModel.update({ _id: checkForDetails._id },
+        {
+          coins: coins,
+          isLocked: true
+        });
+
+      const updatedData = await userModel.findOne({ _id: checkForDetails._id }).lean().exec();
+      return res.json({ status: 200, msg: 'Coins added sucessfully', data: updatedData })
+    }
+    else {
+      return res.json({ status: 400, msg: 'User details not found ' })
+    }
+  } catch (error) {
+    return res.json({ status: 500, msg: 'Error while adding visiot point', err: error })
+  }
+});
+
+
 module.exports = router;
