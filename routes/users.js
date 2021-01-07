@@ -10,6 +10,8 @@ const videoModel = require('../models/videos');
 const { count } = require('../models/users');
 const { find } = require('../models/videos');
 const { log } = require('debug');
+const visitorModel = require('../models/visitor');
+const { default: users } = require('../models/users');
 
 //register user -mysql
 // router.post('/register', async function (req, res) {
@@ -500,13 +502,29 @@ router.post('/socialLogin', async function (req, res) {
 //get videos -mongodb
 router.get('/video', async function (req, res) {
   try {
-    const videoData = await videoModel.find({}).lean().exec();
-    if (videoData.length) {
-      return res.json({ status: 200, msg: 'Videos fetched sucessfully', data: videoData });
+    let pageNo = parseInt(req.query.pageNo);
+    let pageNoNext = parseInt(req.query.pageNo) + 1;
+    let limit = 5;
+    let hasNext = false;
+    pageNo = pageNo * limit;
+    pageNoNext = pageNoNext * limit;
+
+
+    let count = await videoModel.count();
+    let users = await videoModel.find({}).skip(pageNo).limit(limit).lean()
+    let user1 = await videoModel.find({}).skip(pageNoNext).limit(limit).lean()
+    if (user1.length > 0) {
+      hasNext = true;
     }
-    else {
-      return res.json({ status: 200, msg: 'No videos found.', data: null });
-    }
+
+    return res.json({
+      status: 200, msg: 'All Country users fetched sucessfully', data: {
+        hasNext: hasNext, totalPage: Math.ceil(count / limit), totalVideos: count, currentPage: req.query.pageNo,
+        videos: users
+      }
+    });
+
+
   } catch (error) {
     return res.json({ status: 500, msg: 'Error while fetching videos', err: error })
   }
@@ -539,18 +557,46 @@ router.get('/randomVideo', async function (req, res) {
 router.get('/dummyUser', async function (req, res) {
   try {
     const { country } = req.query;
+    let pageNo = parseInt(req.query.pageNo);
+    let pageNoNext = parseInt(req.query.pageNo) + 1;
+    let limit = 16;
+    let hasNext = false;
+    pageNo = pageNo * limit;
+    pageNoNext = pageNoNext * limit;
 
     if (country === undefined || !country || country === '') {
       return res.json({ status: 400, msg: 'Please provide valid country name' })
     }
     if (country === "All") {
-      const usersData = await dummyUsersModel.find({}).lean().exec();
-      return res.json({ status: 200, msg: 'All Country users fetched sucessfully', data: usersData })
+      // const usersData = await dummyUsersModel.find({}).lean().exec();
+      let count = await dummyUsersModel.count();
+      let users = await dummyUsersModel.find({}).skip(pageNo).limit(limit).lean()
+      let user1 = await dummyUsersModel.find({}).skip(pageNoNext).limit(limit).lean()
+      if (user1.length > 0) {
+        hasNext = true;
+      }
+      return res.json({
+        status: 200, msg: 'All Country users fetched sucessfully', data: {
+          hasNext: hasNext, totalPage: Math.ceil(count / limit), totalUsers: count, currentPage: req.query.pageNo,
+          users: users
+        }
+      });
     }
     else {
+      let users = await dummyUsersModel.find({ country: country }).skip(pageNo).limit(limit).lean()
+      let user1 = await dummyUsersModel.find({ country: country }).skip(pageNoNext).limit(limit).lean()
+      if (user1.length > 0) {
+        hasNext = true;
+      }
       const usersData = await dummyUsersModel.find({ country: country }).lean().exec();
-      if (usersData.length) {
-        return res.json({ status: 200, msg: 'Country wise Dummy users fetched sucessfully', data: usersData })
+      let count = usersData.length
+      if (count > 0) {
+        return res.json({
+          status: 200, msg: 'Country wise Dummy users fetched sucessfully', data: {
+            hasNext: hasNext, totalPage: Math.ceil(count / limit), totalUsers: count, currentPage: req.query.pageNo,
+            users: users
+          }
+        });
       }
       else {
         return res.json({ status: 400, msg: `No users found for country -${country}` })
@@ -579,8 +625,7 @@ router.post('/coins', async function (req, res) {
     if (checkForDetails !== undefined || checkForDetails !== null) {
       await userModel.update({ _id: checkForDetails._id },
         {
-          coins: coins,
-          isLocked: true
+          coins: coins
         });
 
       const updatedData = await userModel.findOne({ _id: checkForDetails._id }).lean().exec();
@@ -591,6 +636,74 @@ router.post('/coins', async function (req, res) {
     }
   } catch (error) {
     return res.json({ status: 500, msg: 'Error while adding visiot point', err: error })
+  }
+});
+
+//add visitor token
+router.post('/visitor', async function (req, res) {
+  try {
+    const { androidToken } = req.body;
+    const addedVisitor = await visitorModel.create({ androidToken });
+    return res.json({ status: 200, msg: 'Visitor added sucessfully', addedVisitor: addedVisitor });
+  } catch (error) {
+    return res.json({ status: 500, msg: 'Error while adding visitor point', err: error })
+  }
+});
+
+//coin update for user
+router.put('/coin', async function (req, res) {
+  try {
+    const { email, authToken, coins } = req.body;
+    let checkUser
+    if (email !== undefined || email !== '' || email !== undefined) {
+      checkUser = await userModel.findOne({ email: email }).lean().exec();
+    }
+
+    if (authToken !== undefined || authToken !== '' || authToken !== undefined) {
+      checkUser = await userModel.findOne({ auth_token: authToken }).lean().exec();
+    }
+
+    if (checkUser !== undefined || checkUser !== null) {
+
+      if (checkUser.coins >= coins) {
+        await userModel.update({ _id: checkUser._id },
+          {
+            coins: 0,
+          });
+        const addedVisitor = await userModel.findOne({ _id: checkUser._id }).lean();
+        return res.json({ status: 200, msg: 'Coin updated sucessfully', data: addedVisitor });
+      }
+      else {
+        return res.json({ status: 400, msg: 'Insuffcient coin' });
+      }
+
+
+    } else {
+      return res.json({ status: 400, msg: 'User not found' });
+    }
+
+  } catch (error) {
+    return res.json({ status: 500, msg: 'Error while updating coin for user ', err: error })
+  }
+});
+
+//give coin and it's amount
+router.get('/purchaseDetails', async function (req, res) {
+  try {
+    let obj = {
+      coinFor50: 50,
+      moneyFor50: 700,
+      coinFor100: 150,
+      moneyFor100: 1000,
+      coinFor200: 30,
+      moneyFor200: 1200,
+      coinFor500: 60,
+      moneyFor500: 1500,
+    };
+
+    return res.json({ status: 200, msg: ' Purchase deetails fetched sucessfully ', data: obj })
+  } catch (error) {
+    return res.json({ status: 500, msg: 'Error while getting purchase details ', err: error })
   }
 });
 

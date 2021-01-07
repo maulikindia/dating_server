@@ -38,6 +38,10 @@ let usersSchema = new mongoose.Schema({
     isLocked:
     {
         type: Boolean
+    },
+    amount:
+    {
+        type: mongoose.Schema.Types.Mixed
     }
 
 })

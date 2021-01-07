@@ -8,7 +8,16 @@ let dummyUserSchema = new mongoose.Schema({
     {
         type: String
     },
-    more_pics: [{ type: String }],
+    more_pics: [{
+        img:
+        {
+            type: String
+        },
+        isLock:
+        {
+            type: Boolean
+        }
+    }],
     strickers: [{ type: String }],
     status: { type: Boolean, default: false },
     country:
