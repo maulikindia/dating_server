@@ -381,8 +381,11 @@ router.post('/register', async function (req, res) {
     }
     const userCheck = await userModel.findOne({ email: email }).lean().exec();
     if (userCheck === undefined || userCheck === null) {
-      const addedUser = await userModel.create({ email, name, password, androidToken });
+      let addedUser = await userModel.create({ email, name, password, androidToken });
       if (addedUser._id) {
+        if (!addedUser.hasOwnProperty('coins')) {
+          addedUser.coins = 0;
+        }
         return res.json({ status: 200, msg: 'User register sucessfully', data: addedUser })
       }
       else {
@@ -417,8 +420,10 @@ router.post('/login', async function (req, res) {
         androidToken: androidToken
       });
 
-      const updatedUser = await userModel.findOne({ _id: user._id }).lean().exec();
-
+      let updatedUser = await userModel.findOne({ _id: user._id }).lean().exec();
+      if (!updateUser.hasOwnProperty('coins')) {
+        updateUser.coins = 0;
+      }
       return res.json({ status: 200, msg: 'User loggedin sucessfully ', user: updatedUser })
     }
 
@@ -462,7 +467,6 @@ async function updateUser(id, name, email, userId, authToken, imgUrl, androidTok
 router.post('/socialLogin', async function (req, res) {
   try {
     let { name, email, socialId, authToken, imgUrl, androidToken } = req.body;
-    console.log('body\n', req.body);
     let checkExisitingUser = null;;
     if (authToken) {
       if (email) {
@@ -470,12 +474,17 @@ router.post('/socialLogin', async function (req, res) {
         if (checkExisitingUser === null) {
           console.log('sfdafsfds');
           let socialUserAdded = await userModel.create({ name: name, email: email, user_id: socialId, img_url: imgUrl, auth_token: authToken, androidToken: androidToken });
+          if (!socialUserAdded.hasOwnProperty('coins')) {
+            socialUserAdded.coins = 0;
+          }
           return res.json({ status: 200, msg: 'Social Login Sucessful', data: socialUserAdded });
         }
         else {
-          console.log('sdddd');
-          const updatedUser = await updateUser(checkExisitingUser._id, name, email, socialId, authToken, imgUrl, androidToken)
+          let updatedUser = await updateUser(checkExisitingUser._id, name, email, socialId, authToken, imgUrl, androidToken)
           console.log('updatedUser', updatedUser);
+          if (!updatedUser.hasOwnProperty('coins')) {
+            updatedUser.coins = 0;
+          }
           return res.json({ status: 200, msg: 'Social Login Sucessful', data: updatedUser });
         }
       }
@@ -483,10 +492,16 @@ router.post('/socialLogin', async function (req, res) {
         checkExisitingUser = await userModel.findOne({ user_id: socialId }).lean().exec();
         if (checkExisitingUser === null) {
           let socialUserAdded = await userModel.create({ name: name, email: email, user_id: socialId, img_url: imgUrl, auth_token: authToken, androidToken: androidToken });
+          if (!socialUserAdded.hasOwnProperty('coins')) {
+            socialUserAdded.coins = 0;
+          }
           return res.json({ status: 200, msg: 'Social Login Sucessful', data: socialUserAdded });
         }
         else {
-          const updatedUser = await updateUser(checkExisitingUser._id, name, email, socialId, authToken, imgUrl, androidToken)
+          let updatedUser = await updateUser(checkExisitingUser._id, name, email, socialId, authToken, imgUrl, androidToken)
+          if (!updatedUser.hasOwnProperty('coins')) {
+            updatedUser.coins = 0;
+          }
           return res.json({ status: 200, msg: 'Social Login Sucessful', data: updatedUser });
         }
       }
@@ -612,31 +627,34 @@ router.get('/dummyUser', async function (req, res) {
 //Update points and lock details
 router.post('/coins', async function (req, res) {
   try {
-    let { coins, email, authToken,amount } = req.body;
-    let checkForDetails
-    if (email !== undefined || email !== null || email !== '') {
+    let { coins, email, authToken, amount } = req.body;
+    let checkForDetails = null;
+    if (email !== undefined && email !== null) {
       checkForDetails = await userModel.findOne({ email: email }).lean().exec();
     }
 
-    if (authToken !== undefined || authToken !== null || authToken !== '') {
+    else if (authToken !== undefined && authToken !== null) {
       checkForDetails = await userModel.findOne({ auth_token: authToken }).lean().exec();
+      console.log('checkForDetails', checkForDetails);
     }
+
 
     if (checkForDetails !== undefined || checkForDetails !== null) {
       await userModel.update({ _id: checkForDetails._id },
         {
           coins: coins,
-          amount:amount
+          amount: amount
         });
 
       const updatedData = await userModel.findOne({ _id: checkForDetails._id }).lean().exec();
       return res.json({ status: 200, msg: 'Coins added sucessfully', data: updatedData })
     }
-    else {
+
+    if (checkForDetails === null) {
       return res.json({ status: 400, msg: 'User details not found ' })
     }
   } catch (error) {
-    return res.json({ status: 500, msg: 'Error while adding visiot point', err: error })
+    return res.json({ status: 500, msg: 'Error while adding visitor point', err: error.message })
   }
 });
 
@@ -675,7 +693,7 @@ router.put('/coin', async function (req, res) {
         return res.json({ status: 200, msg: 'Coin updated sucessfully', data: addedVisitor });
       }
       else {
-        return res.json({ status: 400, msg: 'Insuffcient coin' });
+        return res.json({ status: 400, msg: 'Insufficient coin' });
       }
 
 
