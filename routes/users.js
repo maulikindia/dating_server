@@ -612,7 +612,7 @@ router.get('/dummyUser', async function (req, res) {
 //Update points and lock details
 router.post('/coins', async function (req, res) {
   try {
-    let { coins, email, authToken } = req.body;
+    let { coins, email, authToken,amount } = req.body;
     let checkForDetails
     if (email !== undefined || email !== null || email !== '') {
       checkForDetails = await userModel.findOne({ email: email }).lean().exec();
@@ -625,7 +625,8 @@ router.post('/coins', async function (req, res) {
     if (checkForDetails !== undefined || checkForDetails !== null) {
       await userModel.update({ _id: checkForDetails._id },
         {
-          coins: coins
+          coins: coins,
+          amount:amount
         });
 
       const updatedData = await userModel.findOne({ _id: checkForDetails._id }).lean().exec();
