@@ -571,7 +571,7 @@ router.get('/randomVideo', async function (req, res) {
 //get users by all countries or specific country
 router.get('/dummyUser', async function (req, res) {
   try {
-    const { country } = req.query;
+    const { country, matched } = req.query;
     let pageNo = parseInt(req.query.pageNo);
     let pageNoNext = parseInt(req.query.pageNo) + 1;
     let limit = 16;
@@ -579,9 +579,7 @@ router.get('/dummyUser', async function (req, res) {
     pageNo = pageNo * limit;
     pageNoNext = pageNoNext * limit;
 
-    if (country === undefined || !country || country === '') {
-      return res.json({ status: 400, msg: 'Please provide valid country name' })
-    }
+
     if (country === "All") {
       // const usersData = await dummyUsersModel.find({}).lean().exec();
       let count = await dummyUsersModel.count();
@@ -596,6 +594,14 @@ router.get('/dummyUser', async function (req, res) {
           users: users
         }
       });
+    }
+
+    else if (matched === "Yes") {
+      // const count = await dummyUsersModel.find({}).lean().exec();
+      // const matchedRecords = db.collection.find().skip(db.collection.count() - N)
+
+      const matchedRecord = await dummyUsersModel.aggregate([{ $sample: { size: 10 } }]);
+      return res.json({ status: 200, msg: 'Matched  users fetch sucessfully', data: matchedRecord });
     }
     else {
       let users = await dummyUsersModel.find({ country: country }).skip(pageNo).limit(limit).lean()
