@@ -668,8 +668,19 @@ router.post('/coins', async function (req, res) {
 router.post('/visitor', async function (req, res) {
   try {
     const { androidToken } = req.body;
-    const addedVisitor = await visitorModel.create({ androidToken });
-    return res.json({ status: 200, msg: 'Visitor added sucessfully', addedVisitor: addedVisitor });
+    const checkForTokenExists = await visitorModel.findOne({ androidToken: androidToken }).lean().exec();
+    if (checkForTokenExists !== null) {
+      await visitorModel.update({ _id: checkForTokenExists }, {
+        androidToken: androidToken
+      });
+      const addedVisitor = await visitorModel.findOne({ _id: checkForTokenExists._id });
+      return res.json({ status: 200, msg: 'Visitor updated sucessfully', addedVisitor: addedVisitor });
+    }
+    else {
+      const addedVisitor = await visitorModel.create({ androidToken });
+      return res.json({ status: 200, msg: 'Visitor added sucessfully', addedVisitor: addedVisitor });
+    }
+
   } catch (error) {
     return res.json({ status: 500, msg: 'Error while adding visitor point', err: error })
   }
