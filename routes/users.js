@@ -11,8 +11,6 @@ const { count } = require('../models/users');
 const { find } = require('../models/videos');
 const { log } = require('debug');
 const visitorModel = require('../models/visitor');
-const { default: users } = require('../models/users');
-
 //register user -mysql
 // router.post('/register', async function (req, res) {
 //   try {
@@ -386,6 +384,9 @@ router.post('/register', async function (req, res) {
         if (!addedUser.hasOwnProperty('coins')) {
           addedUser.coins = 0;
         }
+        if (!addedUser.hasOwnProperty('amount')) {
+          addedUser.amount = 0;
+        }
         return res.json({ status: 200, msg: 'User register sucessfully', data: addedUser })
       }
       else {
@@ -423,6 +424,10 @@ router.post('/login', async function (req, res) {
       let updatedUser = await userModel.findOne({ _id: user._id }).lean().exec();
       if (!updateUser.hasOwnProperty('coins')) {
         updateUser.coins = 0;
+      }
+
+      if (!updateUser.hasOwnProperty('img_url')) {
+        updateUser.img_url = '';
       }
       return res.json({ status: 200, msg: 'User loggedin sucessfully ', user: updatedUser })
     }
@@ -477,6 +482,10 @@ router.post('/socialLogin', async function (req, res) {
           if (!socialUserAdded.hasOwnProperty('coins')) {
             socialUserAdded.coins = 0;
           }
+
+          if (!socialUserAdded.hasOwnProperty('amount')) {
+            socialUserAdded.amount = 0;
+          }
           return res.json({ status: 200, msg: 'Social Login Sucessful', data: socialUserAdded });
         }
         else {
@@ -484,6 +493,10 @@ router.post('/socialLogin', async function (req, res) {
           console.log('updatedUser', updatedUser);
           if (!updatedUser.hasOwnProperty('coins')) {
             updatedUser.coins = 0;
+          }
+
+          if (!updatedUser.hasOwnProperty('amount')) {
+            updatedUser.amount = 0;
           }
           return res.json({ status: 200, msg: 'Social Login Sucessful', data: updatedUser });
         }
@@ -495,12 +508,19 @@ router.post('/socialLogin', async function (req, res) {
           if (!socialUserAdded.hasOwnProperty('coins')) {
             socialUserAdded.coins = 0;
           }
+          if (!socialUserAdded.hasOwnProperty('amount')) {
+            socialUserAdded.amount = 0;
+          }
+
           return res.json({ status: 200, msg: 'Social Login Sucessful', data: socialUserAdded });
         }
         else {
           let updatedUser = await updateUser(checkExisitingUser._id, name, email, socialId, authToken, imgUrl, androidToken)
           if (!updatedUser.hasOwnProperty('coins')) {
             updatedUser.coins = 0;
+          }
+          if (!updatedUser.hasOwnProperty('amount')) {
+            updatedUser.amount = 0;
           }
           return res.json({ status: 200, msg: 'Social Login Sucessful', data: updatedUser });
         }
