@@ -456,13 +456,13 @@ router.get('/countries', async function (req, res) {
 
 
 //function to update social login
-async function updateUser(id, name, email, userId, authToken, imgUrl, androidToken) {
+async function updateUser(id, name, email, userId, imgUrl, androidToken) {
   const updatedUser = await userModel.findOne({ _id: id }).lean().exec();
   updatedUser.name = name;
   updatedUser.email = email;
   updatedUser.user_id = userId;
   updatedUser.img_url = imgUrl;
-  updatedUser.auth_token = authToken;
+  // updatedUser.auth_token = authToken;
   updatedUser.androidToken = androidToken;
   await updatedUser;
   return updatedUser;
@@ -471,64 +471,61 @@ async function updateUser(id, name, email, userId, authToken, imgUrl, androidTok
 //Social login -mongodb
 router.post('/socialLogin', async function (req, res) {
   try {
-    let { name, email, socialId, authToken, imgUrl, androidToken } = req.body;
+    let { name, email, socialId, imgUrl, androidToken } = req.body;
     let checkExisitingUser = null;;
-    if (authToken) {
-      if (email) {
-        checkExisitingUser = await userModel.findOne({ email: email }).lean().exec();
-        if (checkExisitingUser === null) {
-          console.log('sfdafsfds');
-          let socialUserAdded = await userModel.create({ name: name, email: email, user_id: socialId, img_url: imgUrl, auth_token: authToken, androidToken: androidToken });
-          if (!socialUserAdded.hasOwnProperty('coins')) {
-            socialUserAdded.coins = 0;
-          }
 
-          if (!socialUserAdded.hasOwnProperty('amount')) {
-            socialUserAdded.amount = 0;
-          }
-          return res.json({ status: 200, msg: 'Social Login Sucessful', data: socialUserAdded });
+    if (email) {
+      checkExisitingUser = await userModel.findOne({ email: email }).lean().exec();
+      if (checkExisitingUser === null) {
+        console.log('sfdafsfds');
+        let socialUserAdded = await userModel.create({ name: name, email: email, user_id: socialId, img_url: imgUrl, androidToken: androidToken });
+        if (!socialUserAdded.hasOwnProperty('coins')) {
+          socialUserAdded.coins = 0;
         }
-        else {
-          let updatedUser = await updateUser(checkExisitingUser._id, name, email, socialId, authToken, imgUrl, androidToken)
-          console.log('updatedUser', updatedUser);
-          if (!updatedUser.hasOwnProperty('coins')) {
-            updatedUser.coins = 0;
-          }
 
-          if (!updatedUser.hasOwnProperty('amount')) {
-            updatedUser.amount = 0;
-          }
-          return res.json({ status: 200, msg: 'Social Login Sucessful', data: updatedUser });
+        if (!socialUserAdded.hasOwnProperty('amount')) {
+          socialUserAdded.amount = 0;
         }
+        return res.json({ status: 200, msg: 'Social Login Sucessful', data: socialUserAdded });
       }
-      else if (socialId) {
-        checkExisitingUser = await userModel.findOne({ user_id: socialId }).lean().exec();
-        if (checkExisitingUser === null) {
-          let socialUserAdded = await userModel.create({ name: name, email: email, user_id: socialId, img_url: imgUrl, auth_token: authToken, androidToken: androidToken });
-          if (!socialUserAdded.hasOwnProperty('coins')) {
-            socialUserAdded.coins = 0;
-          }
-          if (!socialUserAdded.hasOwnProperty('amount')) {
-            socialUserAdded.amount = 0;
-          }
+      else {
+        let updatedUser = await updateUser(checkExisitingUser._id, name, email, socialId, imgUrl, androidToken)
+        console.log('updatedUser', updatedUser);
+        if (!updatedUser.hasOwnProperty('coins')) {
+          updatedUser.coins = 0;
+        }
 
-          return res.json({ status: 200, msg: 'Social Login Sucessful', data: socialUserAdded });
+        if (!updatedUser.hasOwnProperty('amount')) {
+          updatedUser.amount = 0;
         }
-        else {
-          let updatedUser = await updateUser(checkExisitingUser._id, name, email, socialId, authToken, imgUrl, androidToken)
-          if (!updatedUser.hasOwnProperty('coins')) {
-            updatedUser.coins = 0;
-          }
-          if (!updatedUser.hasOwnProperty('amount')) {
-            updatedUser.amount = 0;
-          }
-          return res.json({ status: 200, msg: 'Social Login Sucessful', data: updatedUser });
-        }
+        return res.json({ status: 200, msg: 'Social Login Sucessful', data: updatedUser });
       }
     }
-    else {
-      return res.json({ status: 400, msg: 'Please provide auth token' })
+    else if (socialId) {
+      checkExisitingUser = await userModel.findOne({ user_id: socialId }).lean().exec();
+      if (checkExisitingUser === null) {
+        let socialUserAdded = await userModel.create({ name: name, email: email, user_id: socialId, img_url: imgUrl, auth_token: authToken, androidToken: androidToken });
+        if (!socialUserAdded.hasOwnProperty('coins')) {
+          socialUserAdded.coins = 0;
+        }
+        if (!socialUserAdded.hasOwnProperty('amount')) {
+          socialUserAdded.amount = 0;
+        }
+
+        return res.json({ status: 200, msg: 'Social Login Sucessful', data: socialUserAdded });
+      }
+      else {
+        let updatedUser = await updateUser(checkExisitingUser._id, name, email, socialId, authToken, imgUrl, androidToken)
+        if (!updatedUser.hasOwnProperty('coins')) {
+          updatedUser.coins = 0;
+        }
+        if (!updatedUser.hasOwnProperty('amount')) {
+          updatedUser.amount = 0;
+        }
+        return res.json({ status: 200, msg: 'Social Login Sucessful', data: updatedUser });
+      }
     }
+
   } catch (error) {
     return res.json({ status: 500, msg: 'Error in social login', err: error })
   }
@@ -653,14 +650,14 @@ router.get('/dummyUser', async function (req, res) {
 //Update points and lock details
 router.post('/coins', async function (req, res) {
   try {
-    let { coins, email, authToken, amount } = req.body;
+    let { coins, email, socialId, amount } = req.body;
     let checkForDetails = null;
     if (email !== undefined && email !== null) {
       checkForDetails = await userModel.findOne({ email: email }).lean().exec();
     }
 
-    else if (authToken !== undefined && authToken !== null) {
-      checkForDetails = await userModel.findOne({ auth_token: authToken }).lean().exec();
+    else if (socialId !== undefined && socialId !== null) {
+      checkForDetails = await userModel.findOne({ user_id: socialId }).lean().exec();
       console.log('checkForDetails', checkForDetails);
     }
 
@@ -709,14 +706,14 @@ router.post('/visitor', async function (req, res) {
 //coin update for user
 router.put('/coin', async function (req, res) {
   try {
-    const { email, authToken, coins } = req.body;
-    let checkUser
+    const { email, socialId, coins } = req.body;
+    let checkUser;
     if (email !== undefined || email !== '' || email !== undefined) {
       checkUser = await userModel.findOne({ email: email }).lean().exec();
     }
 
-    if (authToken !== undefined || authToken !== '' || authToken !== undefined) {
-      checkUser = await userModel.findOne({ auth_token: authToken }).lean().exec();
+    if (socialId !== undefined || socialId !== '' || socialId !== undefined) {
+      checkUser = await userModel.findOne({ user_id: socialId }).lean().exec();
     }
 
     if (checkUser !== undefined || checkUser !== null) {
@@ -762,6 +759,41 @@ router.get('/purchaseDetails', async function (req, res) {
     return res.json({ status: 500, msg: 'Error while getting purchase details ', err: error })
   }
 });
+
+
+//random user api
+router.post('/randomUser', async function (req, res) {
+  try {
+    const userData = await dummyUsersModel.find({}).lean().exec();
+    if (userData.length === 0) {
+      return res.json({ status: 200, msg: 'Oops , There is no user found !!', data: null })
+    }
+    else {
+      let firstRandomElement = userData[Math.floor(Math.random() * userData.length)];
+
+      if (!firstRandomElement.hasOwnProperty('videoUrl')) {
+        firstRandomElement.videoUrl = '';
+      }
+
+      if (!firstRandomElement.hasOwnProperty('coins')) {
+        firstRandomElement.coins = 0;
+      }
+
+      if (!firstRandomElement.hasOwnProperty('likes')) {
+        firstRandomElement.likes = 0;
+      }
+
+      if (!firstRandomElement.hasOwnProperty('bio')) {
+        firstRandomElement.bio = '';
+      }
+
+      return res.json({ status: 200, msg: 'User fetched sucessfully', data: firstRandomElement })
+    }
+
+  } catch (error) {
+    return res.json({ status: 500, msg: 'Error while getting random user', err: error })
+  }
+})
 
 
 module.exports = router;
