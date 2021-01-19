@@ -26,7 +26,12 @@ let dummyUserSchema = new mongoose.Schema({
     },
     name: { type: String },
     coins: { type: Number, defualt: 0 },
-    likes: { type: Number, default: 0 }
+    likes: { type: Number, default: 0 },
+    videoUrl:
+    {
+        type: String,
+        default: null
+    }
 })
 
 module.exports = mongoose.model('dummyUser', dummyUserSchema)
