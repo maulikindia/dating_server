@@ -426,12 +426,12 @@ router.post('/login', async function (req, res) {
       });
 
       let updatedUser = await userModel.findOne({ _id: user._id }).lean().exec();
-      if (!updateUser.hasOwnProperty('coins')) {
-        updateUser.coins = 0;
+      if (!updatedUser.hasOwnProperty('coins')) {
+        updatedUser.coins = 0;
       }
 
-      if (!updateUser.hasOwnProperty('img_url')) {
-        updateUser.img_url = null;
+      if (!updatedUser.hasOwnProperty('img_url')) {
+        updatedUser.img_url = null;
       }
       return res.json({ status: 200, msg: 'User loggedin sucessfully ', user: updatedUser })
     }
