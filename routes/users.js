@@ -787,6 +787,8 @@ router.post('/randomUser', async function (req, res) {
         firstRandomElement.bio = '';
       }
 
+      console.log('data=>\n', firstRandomElement)
+
       return res.json({ status: 200, msg: 'User fetched sucessfully', data: firstRandomElement })
     }
 
