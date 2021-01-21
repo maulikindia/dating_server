@@ -387,6 +387,10 @@ router.post('/register', async function (req, res) {
         if (!addedUser.hasOwnProperty('amount')) {
           addedUser.amount = 0;
         }
+
+        if (!addedUser.hasOwnProperty('img_url')) {
+          addedUser.img_url = null;
+        }
         return res.json({ status: 200, msg: 'User register sucessfully', data: addedUser })
       }
       else {
@@ -427,7 +431,7 @@ router.post('/login', async function (req, res) {
       }
 
       if (!updateUser.hasOwnProperty('img_url')) {
-        updateUser.img_url = '';
+        updateUser.img_url = null;
       }
       return res.json({ status: 200, msg: 'User loggedin sucessfully ', user: updatedUser })
     }
@@ -787,7 +791,7 @@ router.post('/randomUser', async function (req, res) {
         firstRandomElement.bio = '';
       }
 
-      console.log('data=>\n', firstRandomElement)
+      // console.log('data=>\n', firstRandomElement)
 
       return res.json({ status: 200, msg: 'User fetched sucessfully', data: firstRandomElement })
     }
