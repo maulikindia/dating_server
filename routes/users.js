@@ -11,6 +11,7 @@ const { count } = require('../models/users');
 const { find } = require('../models/videos');
 const { log } = require('debug');
 const visitorModel = require('../models/visitor');
+const msgModel = require('../models/messages');
 //register user -mysql
 // router.post('/register', async function (req, res) {
 //   try {
@@ -799,7 +800,105 @@ router.post('/randomUser', async function (req, res) {
   } catch (error) {
     return res.json({ status: 500, msg: 'Error while getting random user', err: error })
   }
-})
+});
 
+
+//post multiple messages
+router.post('/msgs', async function (req, res) {
+  try {
+    let msgObj = {};
+    const allUsers = await dummyUsersModel.find({}).lean().exec();
+    let msgTextArray = ['I am fine', 'What avout you ?', 'Call me.', 'Hello !', 'Hi ', 'How are you', "you're very cute.", "nice to see you", "I am waiting for your message.", "I like you.", "I think, i am in love with you.", "Hello Sweety", "Good night dear!!", "Good Morning dear.", "Nice to meet you dear.", "See you.", "Dating ?", "Catch me at coffee shop", "I am missing you.", "I am your friend"];
+
+    let msgsArray = [];
+    for await (let mUser of allUsers) {
+      let msgData = Math.floor(Math.random() * msgTextArray.length);
+      const randomMsg = msgTextArray[msgData]
+
+      msgObj.profilePic = mUser.profile_pic;
+      msgObj.name = mUser.name;
+      msgObj.status = mUser.status;
+      msgObj.msgText = randomMsg;
+      let myMsg = {
+        msg: msgObj
+      }
+      msgsArray.push(myMsg);
+    }
+    const data = await msgModel.insertMany(msgsArray);
+
+
+    // let allMsgs = await msgModel.find({}).lean().exec();
+    // for await (mMsg of allMsgs) {
+    //   msgTextArray = msgTextArray.filter(msg => msg !== mMsg.msgText);
+
+    //   await msgModel.findOneAndUpdate({ _id: mMsg._id },
+    //     {
+    //       $set:
+    //       {
+    //         msg:
+    //         {
+    //           allMessages: msgTextArray
+    //         }
+    //       }
+    //     }).lean().exec();
+    // }
+    // let data = await msgModel.find({}).lean().exec();
+    return res.json({ data: data })
+    // return res.json({ datsa: data });
+  } catch (e) {
+    return res.json({ status: 500, msg: 'Error while adding bulk messages', err: e })
+  }
+});
+
+//get multiple messages
+router.get('/msgs', async function (req, res) {
+  try {
+    let allMsgs = await msgModel.find({}).lean().exec();
+    // const allUsers = await dummyUsersModel.find({}).lean().exec();
+    // let msgTextArray = ['I am fine', 'What avout you ?', 'Call me.', 'Hello !', 'Hi ', 'How are you', "you're very cute.", "nice to see you", "I am waiting for your message.", "I like you.", "I think, i am in love with you.", "Hello Sweety", "Good night dear!!", "Good Morning dear.", "Nice to meet you dear.", "See you.", "Dating ?", "Catch me at coffee shop", "I am missing you.", "I am your friend"];
+
+    // let data = await msgModel.findOne({ "msg.msgText": { $ne: null } }).sort({ createdAt: -1 });
+    // console.log('data', data);
+    // await Promise.all(allMsgs.map(async (mMsg) => {
+    //   let msgObj = {};
+    //   let msgData = Math.floor(Math.random() * msgTextArray.length);
+    //   const randomMsg = msgTextArray[msgData]
+    //   msgObj.profilePic = "http://wallpaper-house.com/data/out/8/wallpaper2you_266336.jpg";
+    //   msgObj.name = "Hiral";
+    //   msgObj.status = false;
+    //   msgObj.msgText = randomMsg;
+    //   msgTextArray = msgTextArray.filter(ob => ob !== msgObj.msgText);
+    //   msgObj.allMessages = msgTextArray
+    //   msgObj.lastMsgText = data.msg.msgText
+    //   let myMsg = msgObj
+
+    //   //   // await mMsg.save()
+    //   await msgModel.findOneAndUpdate({ _id: mMsg._id }, {
+    //     $set:
+    //     {
+    //       msg: myMsg
+    //     }
+    //   })
+    // })
+    // )
+
+    return res.json({ status: 200, msg: 'Messages fetched sucessfully', data: allMsgs })
+  } catch (e) {
+    return res.json({ status: 500, msg: 'Error while fetching bulk messages', err: e.message })
+  }
+});
+
+
+//get random message
+router.get('/randomMsg', async function (req, res) {
+  try {
+    let allMsgs = await msgModel.find({}).limit(50).lean().exec();
+    let msgData = Math.floor(Math.random() * allMsgs.length);
+    let randomMsg = allMsgs[msgData];
+    return res.json({ status: 200, msg: 'Random message fetched sucessfully', data: randomMsg })
+  } catch (e) {
+    return res.json({ status: 500, msg: 'Error while fetching random message', err: e.message })
+  }
+});
 
 module.exports = router;
