@@ -7,11 +7,9 @@ const countryModel = require('../models/countries');
 const userModel = require('../models/users');
 const dummyUsersModel = require('../models/dummy_users');
 const videoModel = require('../models/videos');
-const { count } = require('../models/users');
-const { find } = require('../models/videos');
-const { log } = require('debug');
 const visitorModel = require('../models/visitor');
 const msgModel = require('../models/messages');
+const userMsgModel = require('../models/userMessages')
 //register user -mysql
 // router.post('/register', async function (req, res) {
 //   try {
@@ -901,6 +899,30 @@ router.get('/randomMsg', async function (req, res) {
   } catch (e) {
     return res.json({ status: 500, msg: 'Error while fetching random message', err: e.message })
   }
+});
+
+
+//add message
+router.get('/userMsg', async function (req, res) {
+  try {
+    const { msgType } = req.query;
+    if (msgType === null || msgType === undefined || msgType === "") {
+      return res.json({ status: 400, msg: 'Please provide key', data: null })
+    }
+
+
+    let checkForMessage = await userMsgModel.findOne({ msgType: msgType }).lean().exec();
+    if (!checkForMessage) {
+      return res.json({ status: 400, msg: 'No message found for this type', data: null });
+    }
+    else {
+      const addedMessage = await userMsgModel.findOne({ _id: checkForMessage._id }).lean().exec();
+      return res.json({ status: 200, msg: 'user messaged fetched sucessfully', data: addedMessage });
+    }
+  } catch (e) {
+    return res.json({ status: 500, msg: 'error while adding message', err: e.message });
+  }
+
 });
 
 module.exports = router;
