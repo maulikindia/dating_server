@@ -769,33 +769,45 @@ router.get('/purchaseDetails', async function (req, res) {
 //random user api
 router.post('/randomUser', async function (req, res) {
   try {
-    const userData = await dummyUsersModel.find({}).lean().exec();
-    if (userData.length === 0) {
-      return res.json({ status: 200, msg: 'Oops , There is no user found !!', data: null })
+    const key = req.query.key;
+    if (key === null || key === undefined || key === "") {
+      return res.json({ status: 400, msg: 'Please provide key', data: null });
+    }
+
+    if (key === "random") {
+      const userData = await dummyUsersModel.find({}).lean().exec();
+      if (userData.length === 0) {
+        return res.json({ status: 200, msg: 'Oops , There is no user found !!', data: null })
+      }
+      else {
+        let firstRandomElement = userData[Math.floor(Math.random() * userData.length)];
+
+        if (!firstRandomElement.hasOwnProperty('videoUrl')) {
+          firstRandomElement.videoUrl = '';
+        }
+
+        if (!firstRandomElement.hasOwnProperty('coins')) {
+          firstRandomElement.coins = 0;
+        }
+
+        if (!firstRandomElement.hasOwnProperty('likes')) {
+          firstRandomElement.likes = 0;
+        }
+
+        if (!firstRandomElement.hasOwnProperty('bio')) {
+          firstRandomElement.bio = '';
+        }
+
+        // console.log('data=>\n', firstRandomElement)
+
+        return res.json({ status: 200, msg: 'User fetched sucessfully', data: firstRandomElement })
+      }
     }
     else {
-      let firstRandomElement = userData[Math.floor(Math.random() * userData.length)];
-
-      if (!firstRandomElement.hasOwnProperty('videoUrl')) {
-        firstRandomElement.videoUrl = '';
-      }
-
-      if (!firstRandomElement.hasOwnProperty('coins')) {
-        firstRandomElement.coins = 0;
-      }
-
-      if (!firstRandomElement.hasOwnProperty('likes')) {
-        firstRandomElement.likes = 0;
-      }
-
-      if (!firstRandomElement.hasOwnProperty('bio')) {
-        firstRandomElement.bio = '';
-      }
-
-      // console.log('data=>\n', firstRandomElement)
-
-      return res.json({ status: 200, msg: 'User fetched sucessfully', data: firstRandomElement })
+      return res.json({ status: 400, msg: 'Please provide valid  key', data: null });
     }
+
+
 
   } catch (error) {
     return res.json({ status: 500, msg: 'Error while getting random user', err: error })
