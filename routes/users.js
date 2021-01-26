@@ -9,7 +9,8 @@ const dummyUsersModel = require('../models/dummy_users');
 const videoModel = require('../models/videos');
 const visitorModel = require('../models/visitor');
 const msgModel = require('../models/messages');
-const userMsgModel = require('../models/userMessages')
+const userMsgModel = require('../models/userMessages');
+const randomMsgModel = require('../models/randomMessage');
 //register user -mysql
 // router.post('/register', async function (req, res) {
 //   try {
@@ -903,27 +904,27 @@ router.get('/randomMsg', async function (req, res) {
 
 
 //add message
-router.get('/userMsg', async function (req, res) {
-  try {
-    const { msgType } = req.query;
-    if (msgType === null || msgType === undefined || msgType === "") {
-      return res.json({ status: 400, msg: 'Please provide key', data: null })
-    }
+// router.get('/userMsg', async function (req, res) {
+//   try {
+//     const { msgType } = req.query;
+//     if (msgType === null || msgType === undefined || msgType === "") {
+//       return res.json({ status: 400, msg: 'Please provide key', data: null })
+//     }
 
 
-    let checkForMessage = await userMsgModel.findOne({ msgType: msgType }).lean().exec();
-    if (!checkForMessage) {
-      return res.json({ status: 400, msg: 'No message found for this type', data: null });
-    }
-    else {
-      const addedMessage = await userMsgModel.findOne({ _id: checkForMessage._id }).lean().exec();
-      return res.json({ status: 200, msg: 'user messaged fetched sucessfully', data: addedMessage });
-    }
-  } catch (e) {
-    return res.json({ status: 500, msg: 'error while adding message', err: e.message });
-  }
+//     let checkForMessage = await userMsgModel.findOne({ msgType: msgType }).lean().exec();
+//     if (!checkForMessage) {
+//       return res.json({ status: 400, msg: 'No message found for this type', data: null });
+//     }
+//     else {
+//       const addedMessage = await userMsgModel.findOne({ _id: checkForMessage._id }).lean().exec();
+//       return res.json({ status: 200, msg: 'user messaged fetched sucessfully', data: addedMessage });
+//     }
+//   } catch (e) {
+//     return res.json({ status: 500, msg: 'error while adding message', err: e.message });
+//   }
 
-});
+// });
 
 //add message for user
 router.post('/msgForUser', async function (req, res) {
@@ -978,5 +979,21 @@ router.post('/msgForUser', async function (req, res) {
   }
 
 });
+
+
+//get only random message for user
+router.get('/randMsg', async function (req, res) {
+  try {
+    const allMessages = await randomMsgModel.find({}).lean().exec()
+    let firstRandomElement = allMessages[Math.floor(Math.random() * allMessages.length)];
+    delete firstRandomElement.__v;
+    delete firstRandomElement.createdAt;
+    delete firstRandomElement.updatedAt;
+    delete firstRandomElement._id;
+    return res.json({ status: 200, msg: 'Random Message fetched sucessfully', data: firstRandomElement })
+  } catch (error) {
+    return res.json({ status: 500, msg: 'Error while fetching random msg', err: error.message })
+  }
+})
 
 module.exports = router;
