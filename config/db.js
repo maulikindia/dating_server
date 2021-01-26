@@ -28,7 +28,7 @@ module.exports = db;
 */
 
 let mongoose = require('mongoose');
-mongoose.connect('mongodb+srv://dating_user:mj123bhalala007@cluster0.ubl45.mongodb.net/dating_db?retryWrites=true&w=majority', { useNewUrlParser: true, useUnifiedTopology: false }).then((db) => {
+mongoose.connect('mongodb+srv://dating_user:mj123bhalala007@cluster0.ubl45.mongodb.net/dating_db?retryWrites=true&w=majority', { useNewUrlParser: true, useUnifiedTopology: true }).then((db) => {
     console.log('db connection sucessfuly;');
 }).catch((err) => {
     console.log('db connection error');

@@ -42,6 +42,10 @@ let usersSchema = new mongoose.Schema({
     amount:
     {
         type: mongoose.Schema.Types.Mixed
+    },
+    messages:
+    {
+        type: Array
     }
 
 })

@@ -925,4 +925,58 @@ router.get('/userMsg', async function (req, res) {
 
 });
 
+//add message for user
+router.post('/msgForUser', async function (req, res) {
+
+  try {
+    const { message, socialId, androidToken, email } = req.body;
+
+    if (!socialId && !androidToken && !email) {
+      return res.json({ status: 400, msg: 'Please provide social id , androidToken or email to identify user.', data: null });
+    }
+
+    if (!message) {
+      return res.json({ status: 400, msg: 'Please provide message', data: null })
+    }
+    let getUserDetails;
+    let findUser;
+    let newArray = [];
+    newArray.push(message);
+
+    if (socialId) {
+      findUser = await userModel.findOne({ user_id: socialId }).lean().exec();
+      if (findUser) {
+        newArray = newArray.concat(findUser.messages);
+        await userModel.updateOne({ _id: findUser._id }, { messages: newArray });
+        getUserDetails = await userModel.findOne({ _id: findUser._id }).lean().exec();
+
+      }
+    }
+
+    if (androidToken) {
+      findUser = await visitorModel.findOne({ androidToken: androidToken }).lean().exec();
+      if (findUser) {
+        newArray = newArray.concat(findUser.messages);
+        await visitorModel.updateOne({ _id: findUser._id }, { messages: newArray });
+        getUserDetails = await visitorModel.findOne({ _id: findUser._id }).lean().exec();
+      }
+    }
+
+    if (email) {
+      findUser = await userModel.findOne({ email: email }).lean().exec();
+      if (findUser) {
+        newArray = newArray.concat(findUser.messages);
+        await userModel.updateOne({ _id: findUser._id }, { messages: newArray });
+        getUserDetails = await userModel.findOne({ _id: findUser._id }).lean().exec();
+      }
+    }
+
+    getUserDetails.messages = getUserDetails.messages.filter(function (e) { return e });
+    return res.json({ status: 200, msg: 'User details with message added sucessfully', data: getUserDetails });
+  } catch (error) {
+    return res.json({ status: 500, msg: 'error while adding message for user', err: error.message });
+  }
+
+});
+
 module.exports = router;
