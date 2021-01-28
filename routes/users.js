@@ -930,27 +930,32 @@ router.get('/randomMsg', async function (req, res) {
 router.post('/msgForUser', async function (req, res) {
 
   try {
-    const { message, socialId, androidToken, email } = req.body;
+    const { _id, socialId, androidToken, email } = req.body;
 
     if (!socialId && !androidToken && !email) {
       return res.json({ status: 400, msg: 'Please provide social id , androidToken or email to identify user.', data: null });
     }
 
-    if (!message) {
-      return res.json({ status: 400, msg: 'Please provide message', data: null })
+    if (!_id) {
+      return res.json({ status: 400, msg: 'Please provide message id', data: null })
     }
     let getUserDetails;
     let findUser;
     let newArray = [];
-    newArray.push(message);
+
+    const findMessage = await msgModel.findOne({ _id: _id }).lean().exec();
+    if (!findMessage) {
+      return res.json({ status: 400, msg: 'User message not found', data: null });
+    }
+
 
     if (socialId) {
       findUser = await userModel.findOne({ user_id: socialId }).lean().exec();
       if (findUser) {
         newArray = newArray.concat(findUser.messages);
+        newArray.push(findMessage);
         await userModel.updateOne({ _id: findUser._id }, { messages: newArray });
         getUserDetails = await userModel.findOne({ _id: findUser._id }).lean().exec();
-
       }
     }
 
@@ -958,6 +963,7 @@ router.post('/msgForUser', async function (req, res) {
       findUser = await visitorModel.findOne({ androidToken: androidToken }).lean().exec();
       if (findUser) {
         newArray = newArray.concat(findUser.messages);
+        newArray.push(findMessage);
         await visitorModel.updateOne({ _id: findUser._id }, { messages: newArray });
         getUserDetails = await visitorModel.findOne({ _id: findUser._id }).lean().exec();
       }
@@ -967,6 +973,7 @@ router.post('/msgForUser', async function (req, res) {
       findUser = await userModel.findOne({ email: email }).lean().exec();
       if (findUser) {
         newArray = newArray.concat(findUser.messages);
+        newArray.push(findMessage);
         await userModel.updateOne({ _id: findUser._id }, { messages: newArray });
         getUserDetails = await userModel.findOne({ _id: findUser._id }).lean().exec();
       }
