@@ -445,11 +445,21 @@ router.post('/login', async function (req, res) {
 //get countries -mongodb
 router.get('/countries', async function (req, res) {
   try {
-    const countries = await countryModel.find({}).lean().exec();
+    let countries = await countryModel.find({}).lean().exec();
     if (!countries.length) {
       return res.json({ status: 500, msg: 'Countires not found ' })
     }
     else {
+      for (let i = 0; i < countries.length; i++) {
+        if (countries[i].name === "All") {
+          countries[0] = countries[i];
+        }
+
+        if (countries[i].name === "All" && i !== 0) {
+          delete countries[i];
+        }
+      }
+      countries = countries.filter(function (e) { return e });
       return res.json({ status: 200, msg: 'Countires fetched sucessfully', data: countries })
     }
   } catch (error) {
