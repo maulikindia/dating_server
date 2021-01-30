@@ -573,7 +573,7 @@ router.get('/video', async function (req, res) {
 
     let videos = await videoModel.find({}).lean();
     return res.json({
-      status: 200, msg: 'All Country users fetched sucessfully', data: {
+      status: 200, msg: 'All videos fetched sucessfully', data: {
         videos: videos
       }
     });
@@ -711,11 +711,36 @@ router.post('/visitor', async function (req, res) {
       await visitorModel.update({ _id: checkForTokenExists }, {
         androidToken: androidToken
       });
-      const addedVisitor = await visitorModel.findOne({ _id: checkForTokenExists._id });
+      let addedVisitor = await visitorModel.findOne({ _id: checkForTokenExists._id });
+
+      if (!addedVisitor.hasOwnProperty('coins')) {
+        addedVisitor.coins = 0;
+      }
+
+      if (!addedVisitor.hasOwnProperty('imgUrl')) {
+        addedVisitor.imgUrl = '';
+      }
+
+
+      if (!addedVisitor.hasOwnProperty('amount')) {
+        addedVisitor.amount = 0;
+      }
       return res.json({ status: 200, msg: 'Visitor updated sucessfully', addedVisitor: addedVisitor });
     }
     else {
-      const addedVisitor = await visitorModel.create({ androidToken });
+      let addedVisitor = await visitorModel.create({ androidToken });
+      if (!addedVisitor.hasOwnProperty('coins')) {
+        addedVisitor.coins = 0;
+      }
+
+      if (!addedVisitor.hasOwnProperty('imgUrl')) {
+        addedVisitor.imgUrl = '';
+      }
+
+
+      if (!addedVisitor.hasOwnProperty('amount')) {
+        addedVisitor.amount = 0;
+      }
       return res.json({ status: 200, msg: 'Visitor added sucessfully', addedVisitor: addedVisitor });
     }
 
@@ -983,6 +1008,17 @@ router.post('/msgForUser', async function (req, res) {
         newArray.push(findMessage);
         await visitorModel.updateOne({ _id: findUser._id }, { messages: newArray });
         getUserDetails = await visitorModel.findOne({ _id: findUser._id }).lean().exec();
+
+        if (!getUserDetails.hasOwnProperty('coins')) {
+          getUserDetails.coins = 0;
+        }
+        if (!getUserDetails.hasOwnProperty('amount')) {
+          getUserDetails.amount = 0;
+        }
+
+        if (!getUserDetails.hasOwnProperty('imgUrl')) {
+          getUserDetails.imgUrl = null;
+        }
       }
     }
 
