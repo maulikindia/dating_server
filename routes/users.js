@@ -548,28 +548,35 @@ router.post('/socialLogin', async function (req, res) {
 //get videos -mongodb
 router.get('/video', async function (req, res) {
   try {
-    let pageNo = parseInt(req.query.pageNo);
-    let pageNoNext = parseInt(req.query.pageNo) + 1;
-    let limit = 5;
-    let hasNext = false;
-    pageNo = pageNo * limit;
-    pageNoNext = pageNoNext * limit;
+    // let pageNo = parseInt(req.query.pageNo);
+    // let pageNoNext = parseInt(req.query.pageNo) + 1;
+    // let limit = 5;
+    // let hasNext = false;
+    // pageNo = pageNo * limit;
+    // pageNoNext = pageNoNext * limit;
 
 
-    let count = await videoModel.count();
-    let users = await videoModel.find({}).skip(pageNo).limit(limit).lean()
-    let user1 = await videoModel.find({}).skip(pageNoNext).limit(limit).lean()
-    if (user1.length > 0) {
-      hasNext = true;
-    }
+    // let count = await videoModel.count();
+    // let users = await videoModel.find({}).skip(pageNo).limit(limit).lean()
+    // let user1 = await videoModel.find({}).skip(pageNoNext).limit(limit).lean()
+    // if (user1.length > 0) {
+    //   hasNext = true;
+    // }
 
+    // return res.json({
+    //   status: 200, msg: 'All Country users fetched sucessfully', data: {
+    //     hasNext: hasNext, totalPage: Math.ceil(count / limit), totalVideos: count, currentPage: req.query.pageNo,
+    //     videos: users
+    //   }
+    // });
+
+
+    let videos = await videoModel.find({}).lean();
     return res.json({
       status: 200, msg: 'All Country users fetched sucessfully', data: {
-        hasNext: hasNext, totalPage: Math.ceil(count / limit), totalVideos: count, currentPage: req.query.pageNo,
-        videos: users
+        videos: videos
       }
     });
-
 
   } catch (error) {
     return res.json({ status: 500, msg: 'Error while fetching videos', err: error })
