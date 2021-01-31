@@ -371,12 +371,18 @@ const randomMsgModel = require('../models/randomMessage');
 router.post('/register', async function (req, res) {
   try {
     const { email, name, password, androidToken } = req.body;
+    const getVisitorDetails = await visitorModel.findOne({ androidToken: androidToken }).lean().exec();
     if (password === null || password === " " || password === null) {
       return res.json({ status: 400, msg: 'Please enter password' })
     }
     if (email === null || email === " " || email === null) {
       return res.json({ status: 400, msg: 'Please enter email' })
     }
+
+    if (androidToken === null || androidToken === " " || androidToken === null) {
+      return res.json({ status: 400, msg: 'Please provide anroid token' })
+    }
+
     const userCheck = await userModel.findOne({ email: email }).lean().exec();
     if (userCheck === undefined || userCheck === null) {
       let addedUser = await userModel.create({ email, name, password, androidToken });
@@ -391,7 +397,13 @@ router.post('/register', async function (req, res) {
         if (!addedUser.hasOwnProperty('img_url')) {
           addedUser.img_url = null;
         }
-        return res.json({ status: 200, msg: 'User register sucessfully', data: addedUser })
+
+        if (getVisitorDetails) {
+          addedUser.messages = getVisitorDetails.messages && getVisitorDetails.messages.length ? getVisitorDetails.messages : [];
+          await addedUser.save();
+        }
+        let getData = await userModel.findOne({ email: email }).lean().exec();
+        return res.json({ status: 200, msg: 'User register sucessfully', data: getData })
       }
       else {
         return res.json({ status: 500, msg: 'User not  registered' })
@@ -488,7 +500,10 @@ router.post('/socialLogin', async function (req, res) {
     let { name, email, socialId, imgUrl, androidToken } = req.body;
     let checkExisitingUser = null;;
 
+    const getVisitorDetails = await visitorModel.findOne({ androidToken: androidToken }).lean().exec();
+
     if (email) {
+      let userGetData;
       checkExisitingUser = await userModel.findOne({ email: email }).lean().exec();
       if (checkExisitingUser === null) {
         console.log('sfdafsfds');
@@ -500,7 +515,14 @@ router.post('/socialLogin', async function (req, res) {
         if (!socialUserAdded.hasOwnProperty('amount')) {
           socialUserAdded.amount = 0;
         }
-        return res.json({ status: 200, msg: 'Social Login Sucessful', data: socialUserAdded });
+
+        if (getVisitorDetails) {
+          socialUserAdded.messages = getVisitorDetails.messages && getVisitorDetails.messages.length ? getVisitorDetails.messages : []
+          await socialUserAdded.save()
+        }
+        userGetData = await userModel.findOne({ email: email }).lean().exec();
+
+        return res.json({ status: 200, msg: 'Social Login Sucessful', data: userGetData });
       }
       else {
         let updatedUser = await updateUser(checkExisitingUser._id, name, email, socialId, imgUrl, androidToken)
@@ -512,10 +534,16 @@ router.post('/socialLogin', async function (req, res) {
         if (!updatedUser.hasOwnProperty('amount')) {
           updatedUser.amount = 0;
         }
-        return res.json({ status: 200, msg: 'Social Login Sucessful', data: updatedUser });
+        if (getVisitorDetails) {
+          updatedUser.messages = checkExisitingUser.messages && checkExisitingUser.messages.length ? checkExisitingUser.messages : getVisitorDetails.messages && getVisitorDetails.messages.length ? getVisitorDetails.messages : []
+          await updatedUser.save()
+        }
+        userGetData = await userModel.findOne({ email: email }).lean().exec();
+        return res.json({ status: 200, msg: 'Social Login Sucessful', data: userGetData });
       }
     }
     else if (socialId) {
+      let getData;
       checkExisitingUser = await userModel.findOne({ user_id: socialId }).lean().exec();
       if (checkExisitingUser === null) {
         let socialUserAdded = await userModel.create({ name: name, email: email, user_id: socialId, img_url: imgUrl, auth_token: authToken, androidToken: androidToken });
@@ -526,7 +554,12 @@ router.post('/socialLogin', async function (req, res) {
           socialUserAdded.amount = 0;
         }
 
-        return res.json({ status: 200, msg: 'Social Login Sucessful', data: socialUserAdded });
+        if (getVisitorDetails) {
+          socialUserAdded.messages = getVisitorDetails.messages && getVisitorDetails.messages.length ? getVisitorDetails.messages : []
+          await socialUserAdded.save()
+        }
+        getData = await userModel.findOne({ user_id: socialId }).lean().exec();
+        return res.json({ status: 200, msg: 'Social Login Sucessful', data: getData });
       }
       else {
         let updatedUser = await updateUser(checkExisitingUser._id, name, email, socialId, authToken, imgUrl, androidToken)
@@ -536,7 +569,14 @@ router.post('/socialLogin', async function (req, res) {
         if (!updatedUser.hasOwnProperty('amount')) {
           updatedUser.amount = 0;
         }
-        return res.json({ status: 200, msg: 'Social Login Sucessful', data: updatedUser });
+
+        if (getVisitorDetails) {
+          updatedUser.messages = !checkExisitingUser.messages && checkExisitingUser.messages.length ? checkExisitingUser.messages : getVisitorDetails.messages && getVisitorDetails.messages.length ? getVisitorDetails.messages : []
+          await updatedUser.save()
+        }
+
+        getData = await userModel.findOne({ user_id: socialId }).lean().exec();
+        return res.json({ status: 200, msg: 'Social Login Sucessful', data: getData });
       }
     }
 
