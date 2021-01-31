@@ -1056,4 +1056,45 @@ router.get('/randMsg', async function (req, res) {
   }
 })
 
+//get message for particular user
+router.get('/userByMsg', async function (req, res) {
+  try {
+    const { email, socialId, androidToken } = req.query;
+    let userDetails = null;
+    if (!email && !socialId && !androidToken) {
+      return res.json({ status: 400, msg: 'Please peovide email or socialId or androidToken to fetch user messages', data: null });
+    }
+
+    if (email) {
+      userDetails = await userModel.findOne({ email: email }).lean().exec();
+    }
+
+    if (socialId) {
+      userDetails = await userModel.findOne({ user_id: socialId }).lean().exec();
+    }
+
+    if (androidToken) {
+      userDetails = await visitorModel.findOne({ androidToken: androidToken }).lean().exec();
+    }
+
+    if (!userDetails) {
+      return res.json({ status: 400, msg: 'Details not found', data: null });
+    }
+    else {
+      if (!userDetails.hasOwnProperty('messages')) {
+        userDetails.messages = [];
+      }
+
+      if (userDetails.messages && userDetails.messages.length) {
+        userDetails.messages = userDetails.messages.filter(function (e) { return e });
+      }
+      return res.json({ status: 200, msg: 'User details fetched sucessfully', data: userDetails });
+    }
+
+  } catch (error) {
+    return res.json({ status: 500, msg: 'Error while fetching msg for particular user', err: error.message });
+  }
+});
+
+
 module.exports = router;
