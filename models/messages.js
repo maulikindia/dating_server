@@ -25,7 +25,10 @@ const messageSchema = new mongosoe.Schema({
             type: String,
             default: null
         },
-        allMessages: [{ type: String }]
+        morePics: [{ type: String }],
+        stickers: [{ type: String }],
+        coins: { type: Number, default: 0 },
+        allMessages: { type: Array }
     }
 }, { timestamps: true });
 

@@ -467,7 +467,7 @@ router.get('/countries', async function (req, res) {
           countries[0] = countries[i];
         }
 
-        if (countries[i].name === "All" && i !== 0) {
+        if (countries[i].name === "All" && countries[i] !== 0) {
           delete countries[i];
         }
       }
@@ -902,6 +902,21 @@ router.post('/msgs', async function (req, res) {
       msgObj.name = mUser.name;
       msgObj.status = mUser.status;
       msgObj.msgText = randomMsg;
+      msgObj.coins = 0;
+      msgObj.morePics = ["http://wallpaper-house.com/data/out/8/wallpaper2you_266336.jpg", "http://images.all-free-download.com/images/graphiclarge/sexy_beautiful_hd_pictures_168156.jpg"];
+      msgObj.stickers = ["http://image.shutterstock.com/image-vector/smile-more-hand-drawn-lettering-260nw-1423055819.jpg",
+        "http://image.shutterstock.com/image-vector/comic-speech-bubbles-set-different-600w-521151811.jpg",
+        "http://image.shutterstock.com/image-vector/fashion-quirky-cartoon-doodle-patch-260nw-482201029.jpg"];
+      msgObj.allMessages = [{
+        msgTransformation: "from",
+        msgText: "hello"
+      },
+      {
+
+        msgTransformation: "to",
+        msgText: "hi"
+
+      }]
       let myMsg = {
         msg: msgObj
       }
@@ -978,6 +993,8 @@ router.get('/randomMsg', async function (req, res) {
     let allMsgs = await msgModel.find({}).limit(50).lean().exec();
     let msgData = Math.floor(Math.random() * allMsgs.length);
     let randomMsg = allMsgs[msgData];
+    let lastMsgText = randomMsg.msg.allMessages[randomMsg.msg.allMessages.length - 1];
+    randomMsg.msg.lastMsgText = lastMsgText;
     return res.json({ status: 200, msg: 'Random message fetched sucessfully', data: randomMsg })
   } catch (e) {
     return res.json({ status: 500, msg: 'Error while fetching random message', err: e.message })
@@ -1012,7 +1029,7 @@ router.get('/randomMsg', async function (req, res) {
 router.post('/msgForUser', async function (req, res) {
 
   try {
-    const { _id, socialId, androidToken, email } = req.body;
+    const { _id, socialId, androidToken, email, msgText, msgTransformation } = req.body;
 
     if (!socialId && !androidToken && !email) {
       return res.json({ status: 400, msg: 'Please provide social id , androidToken or email to identify user.', data: null });
@@ -1024,18 +1041,28 @@ router.post('/msgForUser', async function (req, res) {
     let getUserDetails;
     let findUser;
     let newArray = [];
+    let newAllMessagesArray = []
+    let msgObj = {
+      msgText: msgText,
+      msgTransformation: msgTransformation
+    };
 
     const findMessage = await msgModel.findOne({ _id: _id }).lean().exec();
     if (!findMessage) {
       return res.json({ status: 400, msg: 'User message not found', data: null });
     }
 
+    let dbAllMessages = findMessage.msg.allMessages;
+    newAllMessagesArray = newAllMessagesArray.concat(dbAllMessages);
+    newAllMessagesArray.push(msgObj)
+    await updateAllMessagesOfMessage(_id, newAllMessagesArray, findMessage);
+    const messageData = await msgModel.findOne({ _id: _id }).lean().exec();
 
     if (socialId) {
       findUser = await userModel.findOne({ user_id: socialId }).lean().exec();
       if (findUser) {
         newArray = newArray.concat(findUser.messages);
-        newArray.push(findMessage);
+        newArray.push(messageData);
         await userModel.updateOne({ _id: findUser._id }, { messages: newArray });
         getUserDetails = await userModel.findOne({ _id: findUser._id }).lean().exec();
       }
@@ -1045,7 +1072,8 @@ router.post('/msgForUser', async function (req, res) {
       findUser = await visitorModel.findOne({ androidToken: androidToken }).lean().exec();
       if (findUser) {
         newArray = newArray.concat(findUser.messages);
-        newArray.push(findMessage);
+        newArray.push(messageData);
+
         await visitorModel.updateOne({ _id: findUser._id }, { messages: newArray });
         getUserDetails = await visitorModel.findOne({ _id: findUser._id }).lean().exec();
 
@@ -1066,7 +1094,7 @@ router.post('/msgForUser', async function (req, res) {
       findUser = await userModel.findOne({ email: email }).lean().exec();
       if (findUser) {
         newArray = newArray.concat(findUser.messages);
-        newArray.push(findMessage);
+        newArray.push(messageData);
         await userModel.updateOne({ _id: findUser._id }, { messages: newArray });
         getUserDetails = await userModel.findOne({ _id: findUser._id }).lean().exec();
       }
@@ -1136,5 +1164,80 @@ router.get('/userByMsg', async function (req, res) {
   }
 });
 
+// router.put('/updateAll', async (req, res) => {
+//   const getAllMessages = await msgModel.find({}).lean().exec();
+//   for await (let mMessage of getAllMessages) {
+
+//     mMessage.msg.coins = 0;
+//     mMessage.msg.morePics = ["http://wallpaper-house.com/data/out/8/wallpaper2you_266336.jpg", "http://images.all-free-download.com/images/graphiclarge/sexy_beautiful_hd_pictures_168156.jpg"];
+//     mMessage.msg.stickers = ["http://image.shutterstock.com/image-vector/smile-more-hand-drawn-lettering-260nw-1423055819.jpg",
+//       "http://image.shutterstock.com/image-vector/comic-speech-bubbles-set-different-600w-521151811.jpg",
+//       "http://image.shutterstock.com/image-vector/fashion-quirky-cartoon-doodle-patch-260nw-482201029.jpg"];
+//     mMessage.msg.allMessages = [{
+//       msgTransformation: "from",
+//       msgText: "hello"
+//     },
+//     {
+//       msgTransformation: "to",
+//       msgText: "hi"
+//     }]
+
+//     let lastMsg = mMessage.msg.allMessages[mMessage.msg.allMessages.length - 1]
+
+//     let set = {
+//       $set:
+//       {
+//         msg:
+//         {
+//           status: true,
+//           name: "Dummy Name",
+//           profilePic: "http://image.shutterstock.com/image-vector/smile-more-hand-drawn-lettering-260nw-1423055819.jpg",
+//           msgText: 'Hello',
+//           allMessages: mMessage.msg.allMessages,
+//           coins: mMessage.msg.coins,
+//           morePics: mMessage.msg.morePics,
+//           stickers: mMessage.msg.stickers,
+//           lastMsgText: lastMsg.msgText
+//         }
+//       }
+//     }
+//     await msgModel.findOneAndUpdate({ _id: mMessage._id }, set)
+//   }
+//   res.json("ok")
+
+// })
+
+
+//Update message for user
+async function updateAllMessagesOfMessage(_id, newAllMessagesArray, msgObj) {
+  try {
+    console.log('msgObj', msgObj);
+    console.log('sdd');
+    let { name, profilePic, coins, morePics, stickers, status, msgText } = msgObj.msg;
+    let lastMsg = newAllMessagesArray[newAllMessagesArray.length - 1]
+    console.log('lastMsg', lastMsg);
+    const updatedData = await msgModel.findOneAndUpdate({ _id: _id }, {
+      $set:
+      {
+        msg: {
+          allMessages: newAllMessagesArray,
+          lastMsgText: lastMsg.msgText,
+          status: status,
+          name: name,
+          profilePic: profilePic,
+          msgText: msgText,
+          coins: coins,
+          morePics: morePics,
+          stickers: stickers,
+        }
+      },
+      new: true
+    })
+
+    return updatedData;
+  } catch (error) {
+    throw error;
+  }
+}
 
 module.exports = router;
