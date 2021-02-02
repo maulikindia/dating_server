@@ -990,7 +990,7 @@ router.get('/msgs', async function (req, res) {
 //get random message
 router.get('/randomMsg', async function (req, res) {
   try {
-    let allMsgs = await msgModel.find({}).limit(50).lean().exec();
+    let allMsgs = await msgModel.find({}).lean().exec();
     let msgData = Math.floor(Math.random() * allMsgs.length);
     let randomMsg = allMsgs[msgData];
     let lastMsgText = randomMsg.msg.allMessages[randomMsg.msg.allMessages.length - 1];
