@@ -994,7 +994,7 @@ router.get('/randomMsg', async function (req, res) {
     let msgData = Math.floor(Math.random() * allMsgs.length);
     let randomMsg = allMsgs[msgData];
     let lastMsgText = randomMsg.msg.allMessages[randomMsg.msg.allMessages.length - 1];
-    randomMsg.msg.lastMsgText = lastMsgText;
+    randomMsg.msg.lastMsgText = lastMsgText.msgText;
     return res.json({ status: 200, msg: 'Random message fetched sucessfully', data: randomMsg })
   } catch (e) {
     return res.json({ status: 500, msg: 'Error while fetching random message', err: e.message })
