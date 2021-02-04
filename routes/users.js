@@ -1179,9 +1179,31 @@ router.get('/userByMsg', async function (req, res) {
       return res.json({ status: 400, msg: 'Details not found', data: null });
     }
     else {
+      // let newMessage = []
+      // if (userDetails.messages && userDetails.messages.length) {
+      //   for await (let mMsgs of userDetails.messages) {
+      //     console.log('mMsgs.ms', mMsgs.msg)
+      //     if (mMsgs.msg !== undefined && mMsgs.msg !== null) {
+      //       if (mMsgs.msg.allMessages != undefined && mMsgs.msg.allMessages.length) {
+      //         let lastMsg = mMsgs.msg.allMessages[mMsgs.msg.allMessages.length - 1].msgText
+      //         if (lastMsg === undefined || lastMsg === null || lastMsg === "") {
+      //           lastMsg = "hello"
+      //           mMsgs.msg.lastMsgText = lastMsg;
+      //         }
+      //         else {
+      //           mMsgs.msg.lastMsgText = lastMsg;
+      //         }
+      //         newMessage.push(mMsgs);
+      //       }
+      //     }
+
+      //   }
+      // }
       if (!userDetails.hasOwnProperty('messages')) {
         userDetails.messages = [];
       }
+
+
 
       if (userDetails.messages && userDetails.messages.length) {
         userDetails.messages = userDetails.messages.filter(function (e) { return e });
@@ -1290,24 +1312,20 @@ router.post('/msgDetails', async function (req, res) {
 
     //get message
     const getMessage = await msgModel.findOne({ _id: _id }).lean().exec();
-    let newMessageArray = [];
-
-
     let msgObj = {
       msgText: msgText,
       msgTransformation: msgTransformation
     };
-
-    let dbAllMessages = getMessage.msg.allMessages;
-    newAllMessagesArray = newAllMessagesArray.concat(dbAllMessages);
-    newAllMessagesArray.push(msgObj)
 
     if (email) {
       userDetails = await userModel.findOne({ email: email }).lean().exec();
       if (userDetails.messages && userDetails.messages.length) {
         let checkForAlreadyMessages = []
         checkForAlreadyMessages = userDetails.messages;
-        let idsArray = checkForAlreadyMessages.map((obj) => obj._id);
+        checkForAlreadyMessages = checkForAlreadyMessages.filter(function (el) {
+          return el != null;
+        });
+        let idsArray = checkForAlreadyMessages.map((obj) => String(obj._id) === _id);
         let newArr = [];
         for (let i = 0; i < idsArray.length; i++) {
           if (String(idsArray[i]) === _id) {
@@ -1316,18 +1334,22 @@ router.post('/msgDetails', async function (req, res) {
         }
 
         if (newArr.length) {
-          newArr[0].msg.allMessages = newArr[0].msg.allMessages.concat({ msgText, msgTransformation })
-
+          await updateDataForMessages(checkForAlreadyMessages, "email", email, _id, msgObj)
         }
         else {
-
-
-          newArray = newArray.concat(findUser.messages);
-          newArray.push(getMessage);
-          let messageObj = {};
-          messageObj = getMessage;
-          messageObj.messages = messageObj.messages.concat({ msgText, msgTransformation });
-          newMessageArray.push(getMessage);
+          let dbMessages = []
+          dbMessages = dbMessages.concat(userDetails.messages);
+          let getAllMessagesOfDbMessage = [];
+          getAllMessagesOfDbMessage = getAllMessagesOfDbMessage.concat(getMessage.msg.allMessages);
+          getAllMessagesOfDbMessage.push(msgObj);
+          getMessage.msg.allMessages = getAllMessagesOfDbMessage;
+          dbMessages = dbMessages.push(getMessage);
+          await visitorModel.findOneAndUpdate({ email: emai }, {
+            $set:
+            {
+              messages: dbMessages
+            }
+          })
         }
       }
     }
@@ -1338,6 +1360,9 @@ router.post('/msgDetails', async function (req, res) {
       if (userDetails.messages && userDetails.messages.length) {
         let checkForAlreadyMessages = []
         checkForAlreadyMessages = userDetails.messages;
+        checkForAlreadyMessages = checkForAlreadyMessages.filter(function (el) {
+          return el != null;
+        });
         let idsArray = checkForAlreadyMessages.map((obj) => obj._id);
         let newArr = [];
         for (let i = 0; i < idsArray.length; i++) {
@@ -1347,13 +1372,24 @@ router.post('/msgDetails', async function (req, res) {
         }
 
         if (newArr.length) {
-
+          if (checkForAlreadyMessages && checkForAlreadyMessages.length) {
+            await updateDataForMessages(checkForAlreadyMessages, "socialId", socialId, _id, msgObj)
+          }
         }
         else {
-          let messageObj = {};
-          messageObj = getMessage;
-          messageObj.messages = messageObj.messages.push({ msgText, msgTransformation });
-          newMessageArray.push(getMessage);
+          let dbMessages = []
+          dbMessages = dbMessages.concat(userDetails.messages);
+          let getAllMessagesOfDbMessage = getMessage.msg.allMessages;
+          getAllMessagesOfDbMessage = getAllMessagesOfDbMessage.push(msgObj);
+          getMessage.msg.allMessages = getAllMessagesOfDbMessage;
+          dbMessages = dbMessages.push(getMessage);
+
+          await visitorModel.findOneAndUpdate({ user_id: socialId }, {
+            $set:
+            {
+              messages: dbMessages
+            }
+          })
         }
       }
     }
@@ -1363,6 +1399,10 @@ router.post('/msgDetails', async function (req, res) {
       if (userDetails.messages && userDetails.messages.length) {
         let checkForAlreadyMessages = []
         checkForAlreadyMessages = userDetails.messages;
+        checkForAlreadyMessages = checkForAlreadyMessages.filter(function (el) {
+          return el != null;
+        });
+        console.log('checkForAlreadyMessages', checkForAlreadyMessages)
         let idsArray = checkForAlreadyMessages.map((obj) => obj._id);
         let newArr = [];
         for (let i = 0; i < idsArray.length; i++) {
@@ -1372,13 +1412,23 @@ router.post('/msgDetails', async function (req, res) {
         }
 
         if (newArr.length) {
-
+          if (checkForAlreadyMessages && checkForAlreadyMessages.length) {
+            await updateDataForMessages(checkForAlreadyMessages, "androidToken", androidToken, _id, msgObj)
+          }
         }
         else {
-          let messageObj = {};
-          messageObj = getMessage;
-          messageObj.messages = messageObj.messages.push({ msgText, msgTransformation });
-          newMessageArray.push(getMessage);
+          let dbMessages = [];
+          dbMessages = dbMessages.concat(userDetails.messages);
+          let getAllMessagesOfDbMessage = getMessage.msg.allMessages;
+          getAllMessagesOfDbMessage = getAllMessagesOfDbMessage.push(msgObj);
+          getMessage.msg.allMessages = getAllMessagesOfDbMessage;
+          dbMessages = dbMessages.push(getMessage);
+          await visitorModel.findOneAndUpdate({ androidToken: androidToken }, {
+            $set:
+            {
+              messages: dbMessages
+            }
+          })
         }
       }
     }
@@ -1395,7 +1445,51 @@ router.post('/msgDetails', async function (req, res) {
 
 
 
+async function updateDataForMessages(checkForAlreadyMessages, userType, loginData, _id, msgObj) {
+  try {
 
+    let newMessages = [];
+    newMessages = newMessages.concat(checkForAlreadyMessages);
+    await Promise.all(checkForAlreadyMessages.map((obj) => {
+      if (String(obj._id) === _id) {
+        obj.msg.allMessages = obj.msg.allMessages.push(msgObj);
+      }
+      newMessages.push(obj);
+    }));
+
+    if (userType === "email") {
+      await userModel.findOneAndUpdate({ email: loginData }, {
+        $set:
+        {
+          messages: newMessages
+        }
+      })
+    }
+
+    if (userType === "socialId") {
+      await userModel.findOneAndUpdate({ user_id: loginData }, {
+        $set:
+        {
+          messages: newMessages
+        }
+      })
+    }
+
+    if (userType === "androidToken") {
+      await visitorModel.findOneAndUpdate({ androidToken: loginData }, {
+        $set:
+        {
+          messages: newMessages
+        }
+      })
+    }
+
+
+    return true
+  } catch (error) {
+    throw error;
+  }
+}
 
 
 module.exports = router;
