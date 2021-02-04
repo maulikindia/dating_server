@@ -25,10 +25,30 @@ const messageSchema = new mongosoe.Schema({
             type: String,
             default: null
         },
-        morePics: [{ type: String }],
+        morePics: [{
+            img:
+            {
+                type: String
+            },
+            isLock:
+            {
+                type: Boolean
+            }
+        }],
         stickers: [{ type: String }],
         coins: { type: Number, default: 0 },
-        allMessages: { type: Array }
+        allMessages: { type: Array },
+        bio:
+        {
+            type: String,
+            default: ''
+        },
+        videoUrl:
+        {
+            type: String,
+            default: ''
+        },
+
     }
 }, { timestamps: true });
 

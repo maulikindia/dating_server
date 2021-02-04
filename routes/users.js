@@ -726,11 +726,17 @@ router.post('/coins', async function (req, res) {
     if (checkForDetails !== undefined || checkForDetails !== null) {
       await userModel.update({ _id: checkForDetails._id },
         {
-          coins: coins,
+          coins: checkForDetails.coins + coins,
           amount: amount
         });
 
-      const updatedData = await userModel.findOne({ _id: checkForDetails._id }).lean().exec();
+      let updatedData = await userModel.findOne({ _id: checkForDetails._id }).lean().exec();
+      delete updatedData._id;
+      delete updatedData.name;
+      delete updatedData.email;
+      // delete updatedData.auth_token;
+      delete updatedData.user_id;
+      delete updatedData.img_url;
       return res.json({ status: 200, msg: 'Coins added sucessfully', data: updatedData })
     }
 
@@ -807,7 +813,7 @@ router.put('/coin', async function (req, res) {
       if (checkUser.coins >= coins) {
         await userModel.update({ _id: checkUser._id },
           {
-            coins: 0,
+            coins: checkUser.coins - coins,
           });
         const addedVisitor = await userModel.findOne({ _id: checkUser._id }).lean();
         return res.json({ status: 200, msg: 'Coin updated sucessfully', data: addedVisitor });
@@ -1029,7 +1035,7 @@ router.get('/randomMsg', async function (req, res) {
 router.post('/msgForUser', async function (req, res) {
 
   try {
-    const { _id, socialId, androidToken, email, msgText, msgTransformation } = req.body;
+    const { _id, socialId, androidToken, email, } = req.body;
 
     if (!socialId && !androidToken && !email) {
       return res.json({ status: 400, msg: 'Please provide social id , androidToken or email to identify user.', data: null });
@@ -1042,10 +1048,10 @@ router.post('/msgForUser', async function (req, res) {
     let findUser;
     let newArray = [];
     let newAllMessagesArray = []
-    let msgObj = {
-      msgText: msgText,
-      msgTransformation: msgTransformation
-    };
+    // let msgObj = {
+    //   msgText: msgText,
+    //   msgTransformation: msgTransformation
+    // };
 
     const findMessage = await msgModel.findOne({ _id: _id }).lean().exec();
     if (!findMessage) {
@@ -1054,13 +1060,25 @@ router.post('/msgForUser', async function (req, res) {
 
     let dbAllMessages = findMessage.msg.allMessages;
     newAllMessagesArray = newAllMessagesArray.concat(dbAllMessages);
-    newAllMessagesArray.push(msgObj)
-    await updateAllMessagesOfMessage(_id, newAllMessagesArray, findMessage);
+    // newAllMessagesArray.push(msgObj)
+    // await updateAllMessagesOfMessage(_id, newAllMessagesArray, findMessage);
     const messageData = await msgModel.findOne({ _id: _id }).lean().exec();
 
     if (socialId) {
       findUser = await userModel.findOne({ user_id: socialId }).lean().exec();
       if (findUser) {
+        let arr1 = [];
+        arr1 = findUser.messages;
+        let idsArray = arr1.map((obj) => obj._id);
+        let newArr = [];
+        for (let i = 0; i < idsArray.length; i++) {
+          if (String(idsArray[i]) === _id) {
+            newArr.push(idsArray[i])
+          }
+        }
+        if (newArr.length) {
+          return res.json({ status: 400, msg: 'Duplicate message ', data: null });
+        }
         newArray = newArray.concat(findUser.messages);
         newArray.push(messageData);
         await userModel.updateOne({ _id: findUser._id }, { messages: newArray });
@@ -1071,37 +1089,49 @@ router.post('/msgForUser', async function (req, res) {
     if (androidToken) {
       findUser = await visitorModel.findOne({ androidToken: androidToken }).lean().exec();
       if (findUser) {
+        let arr1 = [];
+        arr1 = findUser.messages;
+        let idsArray = arr1.map((obj) => obj._id);
+        let newArr = [];
+        for (let i = 0; i < idsArray.length; i++) {
+          if (String(idsArray[i]) === _id) {
+            newArr.push(idsArray[i])
+          }
+        }
+        if (newArr.length) {
+          return res.json({ status: 400, msg: 'Duplicate message ', data: null });
+        }
+
         newArray = newArray.concat(findUser.messages);
         newArray.push(messageData);
-
         await visitorModel.updateOne({ _id: findUser._id }, { messages: newArray });
         getUserDetails = await visitorModel.findOne({ _id: findUser._id }).lean().exec();
-
-        if (!getUserDetails.hasOwnProperty('coins')) {
-          getUserDetails.coins = 0;
-        }
-        if (!getUserDetails.hasOwnProperty('amount')) {
-          getUserDetails.amount = 0;
-        }
-
-        if (!getUserDetails.hasOwnProperty('imgUrl')) {
-          getUserDetails.imgUrl = null;
-        }
       }
     }
 
     if (email) {
       findUser = await userModel.findOne({ email: email }).lean().exec();
       if (findUser) {
+        let arr1 = [];
+        arr1 = findUser.messages;
+        let idsArray = arr1.map((obj) => obj._id);
+        let newArr = [];
+        for (let i = 0; i < idsArray.length; i++) {
+          if (String(idsArray[i]) === _id) {
+            newArr.push(idsArray[i])
+          }
+        }
+        if (newArr.length) {
+          return res.json({ status: 400, msg: 'Duplicate message ', data: null });
+        }
+
         newArray = newArray.concat(findUser.messages);
         newArray.push(messageData);
         await userModel.updateOne({ _id: findUser._id }, { messages: newArray });
-        getUserDetails = await userModel.findOne({ _id: findUser._id }).lean().exec();
       }
     }
 
-    getUserDetails.messages = getUserDetails.messages.filter(function (e) { return e });
-    return res.json({ status: 200, msg: 'User details with message added sucessfully', data: getUserDetails });
+    return res.json({ status: 200, msg: 'User details with message added sucessfully' });
   } catch (error) {
     return res.json({ status: 500, msg: 'error while adding message for user', err: error.message });
   }
@@ -1165,11 +1195,14 @@ router.get('/userByMsg', async function (req, res) {
 });
 
 // router.put('/updateAll', async (req, res) => {
-//   const getAllMessages = await msgModel.find({}).lean().exec();
+//   const getAllMessages = await msgModel.find({}).limit(50).lean().exec();
 //   for await (let mMessage of getAllMessages) {
 
 //     mMessage.msg.coins = 0;
-//     mMessage.msg.morePics = ["http://wallpaper-house.com/data/out/8/wallpaper2you_266336.jpg", "http://images.all-free-download.com/images/graphiclarge/sexy_beautiful_hd_pictures_168156.jpg"];
+//     mMessage.msg.morePics = [{ img: "http://wallpaper-house.com/data/out/8/wallpaper2you_266336.jpg", isLock: true },
+//     {
+//       img: "http://images.all-free-download.com/images/graphiclarge/sexy_beautiful_hd_pictures_168156.jpg", isLock: false
+//     }];
 //     mMessage.msg.stickers = ["http://image.shutterstock.com/image-vector/smile-more-hand-drawn-lettering-260nw-1423055819.jpg",
 //       "http://image.shutterstock.com/image-vector/comic-speech-bubbles-set-different-600w-521151811.jpg",
 //       "http://image.shutterstock.com/image-vector/fashion-quirky-cartoon-doodle-patch-260nw-482201029.jpg"];
@@ -1197,7 +1230,9 @@ router.get('/userByMsg', async function (req, res) {
 //           coins: mMessage.msg.coins,
 //           morePics: mMessage.msg.morePics,
 //           stickers: mMessage.msg.stickers,
-//           lastMsgText: lastMsg.msgText
+//           lastMsgText: lastMsg.msgText ? lastMsg.msgText : 'Hello',
+//           bio: 'demo bio',
+//           videoUrl: 'http://bigvid.xyz/apiapi/uploads/tic-tac-6271f-video-ce574bcb349c.mp4',
 //         }
 //       }
 //     }
@@ -1239,5 +1274,128 @@ async function updateAllMessagesOfMessage(_id, newAllMessagesArray, msgObj) {
     throw error;
   }
 }
+
+//add Message information
+router.post('/msgDetails', async function (req, res) {
+  try {
+    const { email, socialId, androidToken, _id, msgText, msgTransformation } = req.body;
+    let userDetails = null;
+    if (!email && !socialId && !androidToken) {
+      return res.json({ status: 400, msg: 'Please peovide email or socialId or androidToken to fetch user messages', data: null });
+    }
+
+    if (!_id) {
+      return res.json({ status: 400, msg: 'Please provide message', data: null });
+    }
+
+    //get message
+    const getMessage = await msgModel.findOne({ _id: _id }).lean().exec();
+    let newMessageArray = [];
+
+
+    let msgObj = {
+      msgText: msgText,
+      msgTransformation: msgTransformation
+    };
+
+    let dbAllMessages = getMessage.msg.allMessages;
+    newAllMessagesArray = newAllMessagesArray.concat(dbAllMessages);
+    newAllMessagesArray.push(msgObj)
+
+    if (email) {
+      userDetails = await userModel.findOne({ email: email }).lean().exec();
+      if (userDetails.messages && userDetails.messages.length) {
+        let checkForAlreadyMessages = []
+        checkForAlreadyMessages = userDetails.messages;
+        let idsArray = checkForAlreadyMessages.map((obj) => obj._id);
+        let newArr = [];
+        for (let i = 0; i < idsArray.length; i++) {
+          if (String(idsArray[i]) === _id) {
+            newArr.push(idsArray[i])
+          }
+        }
+
+        if (newArr.length) {
+          newArr[0].msg.allMessages = newArr[0].msg.allMessages.concat({ msgText, msgTransformation })
+
+        }
+        else {
+
+
+          newArray = newArray.concat(findUser.messages);
+          newArray.push(getMessage);
+          let messageObj = {};
+          messageObj = getMessage;
+          messageObj.messages = messageObj.messages.concat({ msgText, msgTransformation });
+          newMessageArray.push(getMessage);
+        }
+      }
+    }
+
+
+    if (socialId) {
+      userDetails = await userModel.findOne({ user_id: socialId }).lean().exec();
+      if (userDetails.messages && userDetails.messages.length) {
+        let checkForAlreadyMessages = []
+        checkForAlreadyMessages = userDetails.messages;
+        let idsArray = checkForAlreadyMessages.map((obj) => obj._id);
+        let newArr = [];
+        for (let i = 0; i < idsArray.length; i++) {
+          if (String(idsArray[i]) === _id) {
+            newArr.push(idsArray[i])
+          }
+        }
+
+        if (newArr.length) {
+
+        }
+        else {
+          let messageObj = {};
+          messageObj = getMessage;
+          messageObj.messages = messageObj.messages.push({ msgText, msgTransformation });
+          newMessageArray.push(getMessage);
+        }
+      }
+    }
+
+    if (androidToken) {
+      userDetails = await visitorModel.findOne({ androidToken: androidToken }).lean().exec();
+      if (userDetails.messages && userDetails.messages.length) {
+        let checkForAlreadyMessages = []
+        checkForAlreadyMessages = userDetails.messages;
+        let idsArray = checkForAlreadyMessages.map((obj) => obj._id);
+        let newArr = [];
+        for (let i = 0; i < idsArray.length; i++) {
+          if (String(idsArray[i]) === _id) {
+            newArr.push(idsArray[i])
+          }
+        }
+
+        if (newArr.length) {
+
+        }
+        else {
+          let messageObj = {};
+          messageObj = getMessage;
+          messageObj.messages = messageObj.messages.push({ msgText, msgTransformation });
+          newMessageArray.push(getMessage);
+        }
+      }
+    }
+
+    if (!userDetails) {
+      return res.json({ status: 400, msg: ' User Details not found', data: null });
+    }
+
+    return res.json({ status: 200, msg: 'Message added sucessfully' });
+  } catch (error) {
+    return res.json({ status: 500, msg: 'Error while adding new message', error: error.message });
+  }
+})
+
+
+
+
+
 
 module.exports = router;
