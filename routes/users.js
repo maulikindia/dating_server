@@ -1048,10 +1048,6 @@ router.post('/msgForUser', async function (req, res) {
     let findUser;
     let newArray = [];
     let newAllMessagesArray = []
-    // let msgObj = {
-    //   msgText: msgText,
-    //   msgTransformation: msgTransformation
-    // };
 
     const findMessage = await msgModel.findOne({ _id: _id }).lean().exec();
     if (!findMessage) {
@@ -1060,8 +1056,6 @@ router.post('/msgForUser', async function (req, res) {
 
     let dbAllMessages = findMessage.msg.allMessages;
     newAllMessagesArray = newAllMessagesArray.concat(dbAllMessages);
-    // newAllMessagesArray.push(msgObj)
-    // await updateAllMessagesOfMessage(_id, newAllMessagesArray, findMessage);
     const messageData = await msgModel.findOne({ _id: _id }).lean().exec();
 
     if (socialId) {
@@ -1179,26 +1173,30 @@ router.get('/userByMsg', async function (req, res) {
       return res.json({ status: 400, msg: 'Details not found', data: null });
     }
     else {
-      // let newMessage = []
-      // if (userDetails.messages && userDetails.messages.length) {
-      //   for await (let mMsgs of userDetails.messages) {
-      //     console.log('mMsgs.ms', mMsgs.msg)
-      //     if (mMsgs.msg !== undefined && mMsgs.msg !== null) {
-      //       if (mMsgs.msg.allMessages != undefined && mMsgs.msg.allMessages.length) {
-      //         let lastMsg = mMsgs.msg.allMessages[mMsgs.msg.allMessages.length - 1].msgText
-      //         if (lastMsg === undefined || lastMsg === null || lastMsg === "") {
-      //           lastMsg = "hello"
-      //           mMsgs.msg.lastMsgText = lastMsg;
-      //         }
-      //         else {
-      //           mMsgs.msg.lastMsgText = lastMsg;
-      //         }
-      //         newMessage.push(mMsgs);
-      //       }
-      //     }
+      let updatedArray = []
+      if (userDetails.messages && userDetails.messages.length) {
+        let newMsgsArray = [];
+        for await (let mObj of userDetails.messages) {
+          if (mObj.msg) {
+            if (mObj.msg.allMessages && mObj.msg.allMessages.length) { }
+            newMsgsArray.push(mObj.msg.allMessages)
+          }
+        }
+        newMsgsArray = userDetails.messages.map((obj) => obj.msg.allMessages ? obj.msg.allMessages : []);
+        if (newMsgsArray && newMsgsArray.length) {
+          for await (let mMessags of userDetails.messages) {
+            let nArry = []
+            nArry = newMsgsArray;
+            let lastMsg = nArry[0][nArry[0].length - 1].msgText;
+            if (lastMsg === undefined || lastMsg === null || lastMsg === "") {
+              lastMsg = "hello";
+            }
+            mMessags.msg.lastMsgText = lastMsg;
+            updatedArray.push(mMessags);
+          }
 
-      //   }
-      // }
+        }
+      }
       if (!userDetails.hasOwnProperty('messages')) {
         userDetails.messages = [];
       }
@@ -1208,7 +1206,14 @@ router.get('/userByMsg', async function (req, res) {
       if (userDetails.messages && userDetails.messages.length) {
         userDetails.messages = userDetails.messages.filter(function (e) { return e });
       }
-      return res.json({ status: 200, msg: 'User details fetched sucessfully', data: userDetails });
+      if (updatedArray && updatedArray.length) {
+        return res.json({ status: 200, msg: 'User details fetched sucessfully', data: updatedArray });
+
+      }
+      else {
+        return res.json({ status: 200, msg: 'User details fetched sucessfully', data: userDetails.messages });
+      }
+
     }
 
   } catch (error) {
@@ -1268,11 +1273,8 @@ router.get('/userByMsg', async function (req, res) {
 //Update message for user
 async function updateAllMessagesOfMessage(_id, newAllMessagesArray, msgObj) {
   try {
-    console.log('msgObj', msgObj);
-    console.log('sdd');
     let { name, profilePic, coins, morePics, stickers, status, msgText } = msgObj.msg;
     let lastMsg = newAllMessagesArray[newAllMessagesArray.length - 1]
-    console.log('lastMsg', lastMsg);
     const updatedData = await msgModel.findOneAndUpdate({ _id: _id }, {
       $set:
       {
@@ -1338,19 +1340,35 @@ router.post('/msgDetails', async function (req, res) {
         }
         else {
           let dbMessages = []
-          dbMessages = dbMessages.concat(userDetails.messages);
-          let getAllMessagesOfDbMessage = [];
-          getAllMessagesOfDbMessage = getAllMessagesOfDbMessage.concat(getMessage.msg.allMessages);
-          getAllMessagesOfDbMessage.push(msgObj);
-          getMessage.msg.allMessages = getAllMessagesOfDbMessage;
-          dbMessages = dbMessages.push(getMessage);
-          await visitorModel.findOneAndUpdate({ email: emai }, {
+          dbMessages = userDetails.messages;
+          let inAllMessages = []
+          if (getMessage.msg) {
+            if (getMessage.msg.allMessages && getMessage.msg.allMessages.length) {
+              getMessage.msg.allMessages = getMessage.msg.allMessages.concat(msgObj);
+            }
+          }
+          inAllMessages.push(getMessage);
+          let arr3 = [...inAllMessages, ...dbMessages]
+          await userModel.findOneAndUpdate({ email: email }, {
             $set:
             {
-              messages: dbMessages
+              messages: arr3
             }
           })
         }
+      }
+      else {
+        let dbMessages = []
+        let allMessagesArr = [];
+        allMessagesArr.push(msgObj)
+        getMessage.msg.allMessages = allMessagesArr;
+        dbMessages.push(getMessage);
+        await userModel.findOneAndUpdate({ email: email }, {
+          $set:
+          {
+            messages: dbMessages
+          }
+        })
       }
     }
 
@@ -1378,19 +1396,35 @@ router.post('/msgDetails', async function (req, res) {
         }
         else {
           let dbMessages = []
-          dbMessages = dbMessages.concat(userDetails.messages);
-          let getAllMessagesOfDbMessage = getMessage.msg.allMessages;
-          getAllMessagesOfDbMessage = getAllMessagesOfDbMessage.push(msgObj);
-          getMessage.msg.allMessages = getAllMessagesOfDbMessage;
-          dbMessages = dbMessages.push(getMessage);
-
-          await visitorModel.findOneAndUpdate({ user_id: socialId }, {
+          dbMessages = userDetails.messages;
+          let inAllMessages = []
+          if (getMessage.msg) {
+            if (getMessage.msg.allMessages && getMessage.msg.allMessages.length) {
+              getMessage.msg.allMessages = getMessage.msg.allMessages.concat(msgObj);
+            }
+          }
+          inAllMessages.push(getMessage);
+          let arr3 = [...inAllMessages, ...dbMessages]
+          await userModel.findOneAndUpdate({ user_id: socialId }, {
             $set:
             {
-              messages: dbMessages
+              messages: arr3
             }
           })
         }
+      }
+      else {
+        let dbMessages = []
+        let allMessagesArr = [];
+        allMessagesArr.push(msgObj)
+        getMessage.msg.allMessages = allMessagesArr;
+        dbMessages.push(getMessage);
+        await userModel.findOneAndUpdate({ user_id: socialId }, {
+          $set:
+          {
+            messages: dbMessages
+          }
+        })
       }
     }
 
@@ -1402,7 +1436,6 @@ router.post('/msgDetails', async function (req, res) {
         checkForAlreadyMessages = checkForAlreadyMessages.filter(function (el) {
           return el != null;
         });
-        console.log('checkForAlreadyMessages', checkForAlreadyMessages)
         let idsArray = checkForAlreadyMessages.map((obj) => obj._id);
         let newArr = [];
         for (let i = 0; i < idsArray.length; i++) {
@@ -1417,19 +1450,36 @@ router.post('/msgDetails', async function (req, res) {
           }
         }
         else {
-          let dbMessages = [];
-          dbMessages = dbMessages.concat(userDetails.messages);
-          let getAllMessagesOfDbMessage = getMessage.msg.allMessages;
-          getAllMessagesOfDbMessage = getAllMessagesOfDbMessage.push(msgObj);
-          getMessage.msg.allMessages = getAllMessagesOfDbMessage;
-          dbMessages = dbMessages.push(getMessage);
+          let dbMessages = []
+          dbMessages = userDetails.messages;
+          let inAllMessages = []
+          if (getMessage.msg) {
+            if (getMessage.msg.allMessages && getMessage.msg.allMessages.length) {
+              getMessage.msg.allMessages = getMessage.msg.allMessages.concat(msgObj);
+            }
+          }
+          inAllMessages.push(getMessage);
+          let arr3 = [...inAllMessages, ...dbMessages]
           await visitorModel.findOneAndUpdate({ androidToken: androidToken }, {
             $set:
             {
-              messages: dbMessages
+              messages: arr3
             }
           })
         }
+      }
+      else {
+        let dbMessages = []
+        let allMessagesArr = [];
+        allMessagesArr.push(msgObj)
+        getMessage.msg.allMessages = allMessagesArr;
+        dbMessages.push(getMessage);
+        await visitorModel.findOneAndUpdate({ androidToken: androidToken }, {
+          $set:
+          {
+            messages: dbMessages
+          }
+        })
       }
     }
 
@@ -1438,7 +1488,8 @@ router.post('/msgDetails', async function (req, res) {
     }
 
     return res.json({ status: 200, msg: 'Message added sucessfully' });
-  } catch (error) {
+  }
+  catch (error) {
     return res.json({ status: 500, msg: 'Error while adding new message', error: error.message });
   }
 })
@@ -1449,19 +1500,28 @@ async function updateDataForMessages(checkForAlreadyMessages, userType, loginDat
   try {
 
     let newMessages = [];
-    newMessages = newMessages.concat(checkForAlreadyMessages);
-    await Promise.all(checkForAlreadyMessages.map((obj) => {
-      if (String(obj._id) === _id) {
-        obj.msg.allMessages = obj.msg.allMessages.push(msgObj);
+    newMessages = checkForAlreadyMessages;
+    let myArray = [];
+    myArray = checkForAlreadyMessages;
+    myArray = myArray.find((obj) => String(obj._id) === _id);
+
+    if (myArray.msg) {
+      if (myArray.msg.allMessages && myArray.msg.allMessages.length) {
+        myArray.msg.allMessages = myArray.msg.allMessages.concat(msgObj);
       }
-      newMessages.push(obj);
-    }));
+    }
+
+    checkForAlreadyMessages = checkForAlreadyMessages.filter((obj) => String(obj._id) !== _id);
+    let arr3 = [];
+    let inAllMessages = []
+    inAllMessages.push(myArray);
+    arr3 = [...checkForAlreadyMessages, ...inAllMessages]
 
     if (userType === "email") {
       await userModel.findOneAndUpdate({ email: loginData }, {
         $set:
         {
-          messages: newMessages
+          messages: arr3
         }
       })
     }
@@ -1470,7 +1530,7 @@ async function updateDataForMessages(checkForAlreadyMessages, userType, loginDat
       await userModel.findOneAndUpdate({ user_id: loginData }, {
         $set:
         {
-          messages: newMessages
+          messages: arr3
         }
       })
     }
@@ -1479,7 +1539,7 @@ async function updateDataForMessages(checkForAlreadyMessages, userType, loginDat
       await visitorModel.findOneAndUpdate({ androidToken: loginData }, {
         $set:
         {
-          messages: newMessages
+          messages: arr3
         }
       })
     }
@@ -1491,5 +1551,27 @@ async function updateDataForMessages(checkForAlreadyMessages, userType, loginDat
   }
 }
 
+
+router.put('/asasa', async function (req, res) {
+
+  let arr = [{
+    img: 'https://res.cloudinary.com/djs9kj38y/image/upload/v1612421381/usa/Screenshot_20210203-163708_Hoogo_m4crog.jpg',
+    isLock: false
+  },
+  {
+    img: 'https://res.cloudinary.com/djs9kj38y/image/upload/v1612421381/usa/Screenshot_20210203-163708_Hoogo_m4crog.jpg',
+    isLock: true
+  },
+  {
+    img: 'https://res.cloudinary.com/djs9kj38y/image/upload/v1612421381/usa/Screenshot_20210203-163708_Hoogo_m4crog.jpg',
+    isLock: false
+  },
+  {
+    img: 'https://res.cloudinary.com/djs9kj38y/image/upload/v1612421381/usa/Screenshot_20210203-163708_Hoogo_m4crog.jpg',
+    isLock: true
+  }]
+  const data = await msgModel.updateMany({}, { "$set": { "msg.morePics": arr } })
+  res.json("okay")
+})
 
 module.exports = router;
