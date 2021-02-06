@@ -11,6 +11,7 @@ const visitorModel = require('../models/visitor');
 const msgModel = require('../models/messages');
 const userMsgModel = require('../models/userMessages');
 const randomMsgModel = require('../models/randomMessage');
+const purchaseSettingModel = require('../models/purchaseConfiguration');
 //register user -mysql
 // router.post('/register', async function (req, res) {
 //   try {
@@ -844,7 +845,6 @@ router.get('/purchaseDetails', async function (req, res) {
       // moneyFor200: 1200,
       // coinFor500: 60,
       // moneyFor500: 1500,
-
       coinFor40: 40,
       moneyFor40: 399,
       coinFor100: 100,
@@ -855,7 +855,11 @@ router.get('/purchaseDetails', async function (req, res) {
       moneyFor2600: 25999,
     };
 
-    return res.json({ status: 200, msg: ' Purchase deetails fetched sucessfully ', data: obj })
+    const purchaseDetails = await purchaseSettingModel.findOne({}).lean().exec();
+    if (purchaseDetails === undefined || purchaseDetails === null) {
+      return res.json({ status: 400, msg: 'No any  Purchase deetails  found ', data: null })
+    }
+    return res.json({ status: 200, msg: ' Purchase details fetched sucessfully ', data: purchaseDetails })
   } catch (error) {
     return res.json({ status: 500, msg: 'Error while getting purchase details ', err: error })
   }
@@ -1589,6 +1593,72 @@ router.put('/asasa', async function (req, res) {
   }]
   const data = await msgModel.updateMany({}, { "$set": { "msg.morePics": arr } })
   res.json("okay")
+});
+
+
+//Purchase configuration
+router.post('/purchaseConfig', async (req, res) => {
+  try {
+    let morePics = [{
+      time: 'Week',
+      coin: '40',
+      money: 5000,
+    },
+    {
+      time: 'Month',
+      coin: '100',
+      money: 8000,
+    },
+    {
+      time: 'Year',
+      coin: '1000',
+      money: 50000,
+    }]
+
+    let settings = [{
+      time: 'Week',
+      coin: '40',
+      money: 5000,
+    },
+    {
+      time: 'Month',
+      coin: '40',
+      money: 7000,
+    },
+    {
+      time: 'Year',
+      coin: '1000',
+      money: 55000,
+    }]
+
+    let message = [{
+      time: 'Week',
+      coin: '40',
+      money: 5500,
+    },
+    {
+      time: 'Month',
+      coin: '100',
+      money: 8500,
+    },
+    {
+      time: 'Year',
+      coin: '1000',
+      money: 60000,
+    }];
+
+    let purchaseObj = {
+      settingConfiguration: settings,
+      messageConfiguration: message,
+      morePicsConfiguration: morePics
+    }
+    const data = await purchaseSettingModel.create(purchaseObj);
+    return res.json({ status: 200, msg: 'Purchase configuration  details added sucessfully', data: data });
+
+  } catch (error) {
+    throw error;
+  }
+
 })
 
 module.exports = router;
