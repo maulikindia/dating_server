@@ -836,14 +836,23 @@ router.put('/coin', async function (req, res) {
 router.get('/purchaseDetails', async function (req, res) {
   try {
     let obj = {
-      coinFor50: 50,
-      moneyFor50: 700,
-      coinFor100: 150,
-      moneyFor100: 1000,
-      coinFor200: 30,
-      moneyFor200: 1200,
-      coinFor500: 60,
-      moneyFor500: 1500,
+      // coinFor50: 50,
+      // moneyFor50: 700,
+      // coinFor100: 150,
+      // moneyFor100: 1000,
+      // coinFor200: 30,
+      // moneyFor200: 1200,
+      // coinFor500: 60,
+      // moneyFor500: 1500,
+
+      coinFor40: 40,
+      moneyFor40: 399,
+      coinFor100: 100,
+      moneyFor100: 999,
+      coinFor900: 900,
+      moneyFor900: 8999,
+      coinFor2600: 2600,
+      moneyFor2600: 25999,
     };
 
     return res.json({ status: 200, msg: ' Purchase deetails fetched sucessfully ', data: obj })
