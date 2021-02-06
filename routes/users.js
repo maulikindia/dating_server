@@ -1053,7 +1053,6 @@ router.post('/msgForUser', async function (req, res) {
     if (!_id) {
       return res.json({ status: 400, msg: 'Please provide message id', data: null })
     }
-    let getUserDetails;
     let findUser;
     let newArray = [];
     let newAllMessagesArray = []
@@ -1134,6 +1133,9 @@ router.post('/msgForUser', async function (req, res) {
       }
     }
 
+    if (findUser === undefined || findUser === null) {
+      return res.json({ status: 400, msg: 'User details not found', data: null });
+    }
     return res.json({ status: 200, msg: 'User details with message added sucessfully' });
   } catch (error) {
     return res.json({ status: 500, msg: 'error while adding message for user', err: error.message });
@@ -1330,169 +1332,175 @@ router.post('/msgDetails', async function (req, res) {
 
     if (email) {
       userDetails = await userModel.findOne({ email: email }).lean().exec();
-      if (userDetails.messages && userDetails.messages.length) {
-        let checkForAlreadyMessages = []
-        checkForAlreadyMessages = userDetails.messages;
-        checkForAlreadyMessages = checkForAlreadyMessages.filter(function (el) {
-          return el != null;
-        });
-        let idsArray = checkForAlreadyMessages.map((obj) => String(obj._id) === _id);
-        let newArr = [];
-        for (let i = 0; i < idsArray.length; i++) {
-          if (String(idsArray[i]) === _id) {
-            newArr.push(idsArray[i])
+      if (userDetails) {
+        if (userDetails.messages && userDetails.messages.length) {
+          let checkForAlreadyMessages = []
+          checkForAlreadyMessages = userDetails.messages;
+          checkForAlreadyMessages = checkForAlreadyMessages.filter(function (el) {
+            return el != null;
+          });
+          let idsArray = checkForAlreadyMessages.map((obj) => String(obj._id) === _id);
+          let newArr = [];
+          for (let i = 0; i < idsArray.length; i++) {
+            if (String(idsArray[i]) === _id) {
+              newArr.push(idsArray[i])
+            }
           }
-        }
 
-        if (newArr.length) {
-          await updateDataForMessages(checkForAlreadyMessages, "email", email, _id, msgObj)
+          if (newArr.length) {
+            await updateDataForMessages(checkForAlreadyMessages, "email", email, _id, msgObj)
+          }
+          else {
+            let dbMessages = []
+            dbMessages = userDetails.messages;
+            let inAllMessages = []
+            if (getMessage.msg) {
+              if (getMessage.msg.allMessages && getMessage.msg.allMessages.length) {
+                getMessage.msg.allMessages = getMessage.msg.allMessages.concat(msgObj);
+              }
+            }
+            inAllMessages.push(getMessage);
+            let arr3 = [...inAllMessages, ...dbMessages]
+            await userModel.findOneAndUpdate({ email: email }, {
+              $set:
+              {
+                messages: arr3
+              }
+            })
+          }
         }
         else {
           let dbMessages = []
-          dbMessages = userDetails.messages;
-          let inAllMessages = []
-          if (getMessage.msg) {
-            if (getMessage.msg.allMessages && getMessage.msg.allMessages.length) {
-              getMessage.msg.allMessages = getMessage.msg.allMessages.concat(msgObj);
-            }
-          }
-          inAllMessages.push(getMessage);
-          let arr3 = [...inAllMessages, ...dbMessages]
+          let allMessagesArr = [];
+          allMessagesArr.push(msgObj)
+          getMessage.msg.allMessages = allMessagesArr;
+          dbMessages.push(getMessage);
           await userModel.findOneAndUpdate({ email: email }, {
             $set:
             {
-              messages: arr3
+              messages: dbMessages
             }
           })
         }
       }
-      else {
-        let dbMessages = []
-        let allMessagesArr = [];
-        allMessagesArr.push(msgObj)
-        getMessage.msg.allMessages = allMessagesArr;
-        dbMessages.push(getMessage);
-        await userModel.findOneAndUpdate({ email: email }, {
-          $set:
-          {
-            messages: dbMessages
-          }
-        })
-      }
     }
-
 
     if (socialId) {
       userDetails = await userModel.findOne({ user_id: socialId }).lean().exec();
-      if (userDetails.messages && userDetails.messages.length) {
-        let checkForAlreadyMessages = []
-        checkForAlreadyMessages = userDetails.messages;
-        checkForAlreadyMessages = checkForAlreadyMessages.filter(function (el) {
-          return el != null;
-        });
-        let idsArray = checkForAlreadyMessages.map((obj) => obj._id);
-        let newArr = [];
-        for (let i = 0; i < idsArray.length; i++) {
-          if (String(idsArray[i]) === _id) {
-            newArr.push(idsArray[i])
+      if (userDetails) {
+        if (userDetails.messages && userDetails.messages.length) {
+          let checkForAlreadyMessages = []
+          checkForAlreadyMessages = userDetails.messages;
+          checkForAlreadyMessages = checkForAlreadyMessages.filter(function (el) {
+            return el != null;
+          });
+          let idsArray = checkForAlreadyMessages.map((obj) => obj._id);
+          let newArr = [];
+          for (let i = 0; i < idsArray.length; i++) {
+            if (String(idsArray[i]) === _id) {
+              newArr.push(idsArray[i])
+            }
           }
-        }
 
-        if (newArr.length) {
-          if (checkForAlreadyMessages && checkForAlreadyMessages.length) {
-            await updateDataForMessages(checkForAlreadyMessages, "socialId", socialId, _id, msgObj)
+          if (newArr.length) {
+            if (checkForAlreadyMessages && checkForAlreadyMessages.length) {
+              await updateDataForMessages(checkForAlreadyMessages, "socialId", socialId, _id, msgObj)
+            }
+          }
+          else {
+            let dbMessages = []
+            dbMessages = userDetails.messages;
+            let inAllMessages = []
+            if (getMessage.msg) {
+              if (getMessage.msg.allMessages && getMessage.msg.allMessages.length) {
+                getMessage.msg.allMessages = getMessage.msg.allMessages.concat(msgObj);
+              }
+            }
+            inAllMessages.push(getMessage);
+            let arr3 = [...inAllMessages, ...dbMessages]
+            await userModel.findOneAndUpdate({ user_id: socialId }, {
+              $set:
+              {
+                messages: arr3
+              }
+            })
           }
         }
         else {
           let dbMessages = []
-          dbMessages = userDetails.messages;
-          let inAllMessages = []
-          if (getMessage.msg) {
-            if (getMessage.msg.allMessages && getMessage.msg.allMessages.length) {
-              getMessage.msg.allMessages = getMessage.msg.allMessages.concat(msgObj);
-            }
-          }
-          inAllMessages.push(getMessage);
-          let arr3 = [...inAllMessages, ...dbMessages]
+          let allMessagesArr = [];
+          allMessagesArr.push(msgObj)
+          getMessage.msg.allMessages = allMessagesArr;
+          dbMessages.push(getMessage);
           await userModel.findOneAndUpdate({ user_id: socialId }, {
             $set:
             {
-              messages: arr3
+              messages: dbMessages
             }
           })
         }
       }
-      else {
-        let dbMessages = []
-        let allMessagesArr = [];
-        allMessagesArr.push(msgObj)
-        getMessage.msg.allMessages = allMessagesArr;
-        dbMessages.push(getMessage);
-        await userModel.findOneAndUpdate({ user_id: socialId }, {
-          $set:
-          {
-            messages: dbMessages
-          }
-        })
-      }
+
     }
 
     if (androidToken) {
       userDetails = await visitorModel.findOne({ androidToken: androidToken }).lean().exec();
-      if (userDetails.messages && userDetails.messages.length) {
-        let checkForAlreadyMessages = []
-        checkForAlreadyMessages = userDetails.messages;
-        checkForAlreadyMessages = checkForAlreadyMessages.filter(function (el) {
-          return el != null;
-        });
-        let idsArray = checkForAlreadyMessages.map((obj) => obj._id);
-        let newArr = [];
-        for (let i = 0; i < idsArray.length; i++) {
-          if (String(idsArray[i]) === _id) {
-            newArr.push(idsArray[i])
+      if (userDetails) {
+        if (userDetails.messages && userDetails.messages.length) {
+          let checkForAlreadyMessages = []
+          checkForAlreadyMessages = userDetails.messages;
+          checkForAlreadyMessages = checkForAlreadyMessages.filter(function (el) {
+            return el != null;
+          });
+          let idsArray = checkForAlreadyMessages.map((obj) => obj._id);
+          let newArr = [];
+          for (let i = 0; i < idsArray.length; i++) {
+            if (String(idsArray[i]) === _id) {
+              newArr.push(idsArray[i])
+            }
           }
-        }
 
-        if (newArr.length) {
-          if (checkForAlreadyMessages && checkForAlreadyMessages.length) {
-            await updateDataForMessages(checkForAlreadyMessages, "androidToken", androidToken, _id, msgObj)
+          if (newArr.length) {
+            if (checkForAlreadyMessages && checkForAlreadyMessages.length) {
+              await updateDataForMessages(checkForAlreadyMessages, "androidToken", androidToken, _id, msgObj)
+            }
+          }
+          else {
+            let dbMessages = []
+            dbMessages = userDetails.messages;
+            let inAllMessages = []
+            if (getMessage.msg) {
+              if (getMessage.msg.allMessages && getMessage.msg.allMessages.length) {
+                getMessage.msg.allMessages = getMessage.msg.allMessages.concat(msgObj);
+              }
+            }
+            inAllMessages.push(getMessage);
+            let arr3 = [...inAllMessages, ...dbMessages]
+            await visitorModel.findOneAndUpdate({ androidToken: androidToken }, {
+              $set:
+              {
+                messages: arr3
+              }
+            })
           }
         }
         else {
           let dbMessages = []
-          dbMessages = userDetails.messages;
-          let inAllMessages = []
-          if (getMessage.msg) {
-            if (getMessage.msg.allMessages && getMessage.msg.allMessages.length) {
-              getMessage.msg.allMessages = getMessage.msg.allMessages.concat(msgObj);
-            }
-          }
-          inAllMessages.push(getMessage);
-          let arr3 = [...inAllMessages, ...dbMessages]
+          let allMessagesArr = [];
+          allMessagesArr.push(msgObj)
+          getMessage.msg.allMessages = allMessagesArr;
+          dbMessages.push(getMessage);
           await visitorModel.findOneAndUpdate({ androidToken: androidToken }, {
             $set:
             {
-              messages: arr3
+              messages: dbMessages
             }
           })
         }
       }
-      else {
-        let dbMessages = []
-        let allMessagesArr = [];
-        allMessagesArr.push(msgObj)
-        getMessage.msg.allMessages = allMessagesArr;
-        dbMessages.push(getMessage);
-        await visitorModel.findOneAndUpdate({ androidToken: androidToken }, {
-          $set:
-          {
-            messages: dbMessages
-          }
-        })
-      }
-    }
 
-    if (!userDetails) {
+    }
+    if (userDetails === undefined || userDetails === null) {
       return res.json({ status: 400, msg: ' User Details not found', data: null });
     }
 
