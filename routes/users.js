@@ -1190,27 +1190,30 @@ router.get('/userByMsg', async function (req, res) {
     else {
       let updatedArray = []
       if (userDetails.messages && userDetails.messages.length) {
-        let newMsgsArray = [];
-        for await (let mObj of userDetails.messages) {
-          if (mObj.msg) {
-            if (mObj.msg.allMessages && mObj.msg.allMessages.length) { }
-            newMsgsArray.push(mObj.msg.allMessages)
-          }
-        }
-        newMsgsArray = userDetails.messages.map((obj) => obj.msg.allMessages ? obj.msg.allMessages : []);
-        if (newMsgsArray && newMsgsArray.length) {
-          for await (let mMessags of userDetails.messages) {
-            let nArry = []
-            nArry = newMsgsArray;
-            let lastMsg = nArry[0][nArry[0].length - 1].msgText;
+        // let newMsgsArray = [];
+        // for await (let mObj of userDetails.messages) {
+        //   if (mObj.msg) {
+        //     if (mObj.msg.allMessages && mObj.msg.allMessages.length) { }
+        //     newMsgsArray.push(mObj.msg.allMessages)
+        //   }
+        // }
+        // newMsgsArray = userDetails.messages.map((obj) => obj.msg.allMessages ? obj.msg.allMessages : []);
+        // if (newMsgsArray && newMsgsArray.length) {
+        for await (let mMessags of userDetails.messages) {
+          let nArry = []
+          // nArry = newMsgsArray;
+          let lastMsg = ""
+          if (mMessags.msg && mMessags.msg.allMessages && mMessags.msg.allMessages.length) {
+            nArry = mMessags.msg.allMessages;
+            lastMsg = nArry[nArry.length - 1].msgText;
             if (lastMsg === undefined || lastMsg === null || lastMsg === "") {
               lastMsg = "hello";
             }
-            mMessags.msg.lastMsgText = lastMsg;
-            updatedArray.push(mMessags);
           }
-
+          mMessags.msg.lastMsgText = lastMsg;
+          updatedArray.push(mMessags);
         }
+        // }
       }
       if (!userDetails.hasOwnProperty('messages')) {
         userDetails.messages = [];
