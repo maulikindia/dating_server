@@ -51,6 +51,12 @@ let usersSchema = new mongoose.Schema({
     {
         type: Number,
         default: 0
+    },
+    loginType:
+    {
+        type: Number,
+        enum: [0, 1, 2],  //0 = normal login ,1= fb login ,2=gmail login
+        default: 0
     }
 
 })
