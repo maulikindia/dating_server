@@ -1098,6 +1098,8 @@ router.post('/msgForUser', async function (req, res) {
         }
         newArray = newArray.concat(findUser.messages);
         newArray.push(messageData);
+        newArray.splice(0, 0, messageData)
+        newArray = newArray.slice(0, newArray.length - 1)
         await userModel.updateOne({ _id: findUser._id }, { messages: newArray });
         getUserDetails = await userModel.findOne({ _id: findUser._id }).lean().exec();
       }
@@ -1121,6 +1123,8 @@ router.post('/msgForUser', async function (req, res) {
 
         newArray = newArray.concat(findUser.messages);
         newArray.push(messageData);
+        newArray.splice(0, 0, messageData)
+        newArray = newArray.slice(0, newArray.length - 1)
         await visitorModel.updateOne({ _id: findUser._id }, { messages: newArray });
         getUserDetails = await visitorModel.findOne({ _id: findUser._id }).lean().exec();
       }
@@ -1144,6 +1148,8 @@ router.post('/msgForUser', async function (req, res) {
 
         newArray = newArray.concat(findUser.messages);
         newArray.push(messageData);
+        newArray.splice(0, 0, messageData)
+        newArray = newArray.slice(0, newArray.length - 1)
         await userModel.updateOne({ _id: findUser._id }, { messages: newArray });
       }
     }
@@ -1378,6 +1384,8 @@ router.post('/msgDetails', async function (req, res) {
               }
             }
             inAllMessages.push(getMessage);
+            inAllMessages.splice(0, 0, getMessage)
+            inAllMessages = inAllMessages.slice(0, inAllMessages.length - 1)
             let arr3 = [...inAllMessages, ...dbMessages]
             await userModel.findOneAndUpdate({ email: email }, {
               $set:
@@ -1393,6 +1401,9 @@ router.post('/msgDetails', async function (req, res) {
           allMessagesArr.push(msgObj)
           getMessage.msg.allMessages = allMessagesArr;
           dbMessages.push(getMessage);
+          dbMessages.splice(0, 0, getMessage)
+          dbMessages = dbMessages.slice(0, dbMessages.length - 1)
+          await visitorModel.updateOne({ _id: findUser._id }, { messages: newArray });
           await userModel.findOneAndUpdate({ email: email }, {
             $set:
             {
@@ -1435,6 +1446,8 @@ router.post('/msgDetails', async function (req, res) {
               }
             }
             inAllMessages.push(getMessage);
+            inAllMessages.splice(0, 0, getMessage)
+            inAllMessages = inAllMessages.slice(0, inAllMessages.length - 1)
             let arr3 = [...inAllMessages, ...dbMessages]
             await userModel.findOneAndUpdate({ user_id: socialId }, {
               $set:
@@ -1450,6 +1463,8 @@ router.post('/msgDetails', async function (req, res) {
           allMessagesArr.push(msgObj)
           getMessage.msg.allMessages = allMessagesArr;
           dbMessages.push(getMessage);
+          dbMessages.splice(0, 0, getMessage)
+          dbMessages = dbMessages.slice(0, dbMessages.length - 1)
           await userModel.findOneAndUpdate({ user_id: socialId }, {
             $set:
             {
@@ -1493,6 +1508,8 @@ router.post('/msgDetails', async function (req, res) {
               }
             }
             inAllMessages.push(getMessage);
+            inAllMessages.splice(0, 0, getMessage)
+            inAllMessages = inAllMessages.slice(0, inAllMessages.length - 1)
             let arr3 = [...inAllMessages, ...dbMessages]
             await visitorModel.findOneAndUpdate({ androidToken: androidToken }, {
               $set:
@@ -1508,6 +1525,8 @@ router.post('/msgDetails', async function (req, res) {
           allMessagesArr.push(msgObj)
           getMessage.msg.allMessages = allMessagesArr;
           dbMessages.push(getMessage);
+          dbMessages.splice(0, 0, getMessage)
+          dbMessages = dbMessages.slice(0, dbMessages.length - 1);
           await visitorModel.findOneAndUpdate({ androidToken: androidToken }, {
             $set:
             {
@@ -1550,7 +1569,7 @@ async function updateDataForMessages(checkForAlreadyMessages, userType, loginDat
     let arr3 = [];
     let inAllMessages = []
     inAllMessages.push(myArray);
-    arr3 = [...checkForAlreadyMessages, ...inAllMessages]
+    arr3 = [...inAllMessages, ...checkForAlreadyMessages]
 
     if (userType === "email") {
       await userModel.findOneAndUpdate({ email: loginData }, {
