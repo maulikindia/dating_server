@@ -46,6 +46,11 @@ let usersSchema = new mongoose.Schema({
     messages:
     {
         type: Array
+    },
+    visitCount:
+    {
+        type: Number,
+        default: 0
     }
 
 })

@@ -435,7 +435,8 @@ router.post('/login', async function (req, res) {
       return res.json({ status: 400, msg: 'Email or Password Invalid ,Try again later ' })
     } else {
       await userModel.updateOne({ _id: user._id }, {
-        androidToken: androidToken
+        androidToken: androidToken,
+        visitCount: user.visitCount ? user.visitCount + 1 : 0
       });
 
       let updatedUser = await userModel.findOne({ _id: user._id }).lean().exec();
@@ -446,6 +447,12 @@ router.post('/login', async function (req, res) {
       if (!updatedUser.hasOwnProperty('img_url')) {
         updatedUser.img_url = null;
       }
+
+      if (!updatedUser.hasOwnProperty('visitCount')) {
+        updatedUser.visitCount = 0;
+      }
+
+
       return res.json({ status: 200, msg: 'User loggedin sucessfully ', user: updatedUser })
     }
 
@@ -507,7 +514,6 @@ router.post('/socialLogin', async function (req, res) {
       let userGetData;
       checkExisitingUser = await userModel.findOne({ email: email }).lean().exec();
       if (checkExisitingUser === null) {
-        console.log('sfdafsfds');
         let socialUserAdded = await userModel.create({ name: name, email: email, user_id: socialId, img_url: imgUrl, androidToken: androidToken });
         if (!socialUserAdded.hasOwnProperty('coins')) {
           socialUserAdded.coins = 0;
@@ -527,7 +533,6 @@ router.post('/socialLogin', async function (req, res) {
       }
       else {
         let updatedUser = await updateUser(checkExisitingUser._id, name, email, socialId, imgUrl, androidToken)
-        console.log('updatedUser', updatedUser);
         if (!updatedUser.hasOwnProperty('coins')) {
           updatedUser.coins = 0;
         }
@@ -756,7 +761,8 @@ router.post('/visitor', async function (req, res) {
     const checkForTokenExists = await visitorModel.findOne({ androidToken: androidToken }).lean().exec();
     if (checkForTokenExists !== null) {
       await visitorModel.update({ _id: checkForTokenExists }, {
-        androidToken: androidToken
+        androidToken: androidToken,
+        visitCount: checkForTokenExists.visitCount ? checkForTokenExists.visitCount + 1 : 0
       });
       let addedVisitor = await visitorModel.findOne({ _id: checkForTokenExists._id });
 
@@ -772,6 +778,11 @@ router.post('/visitor', async function (req, res) {
       if (!addedVisitor.hasOwnProperty('amount')) {
         addedVisitor.amount = 0;
       }
+
+      if (!addedVisitor.hasOwnProperty('visitCount')) {
+        addedVisitor.visitCount = 0;
+      }
+
       return res.json({ status: 200, msg: 'Visitor updated sucessfully', addedVisitor: addedVisitor });
     }
     else {
