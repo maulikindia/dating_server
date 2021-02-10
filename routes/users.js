@@ -436,7 +436,7 @@ router.post('/login', async function (req, res) {
     } else {
       await userModel.updateOne({ _id: user._id }, {
         androidToken: androidToken,
-        visitCount: user.visitCount ? user.visitCount + 1 : 0
+        visitCount: user.visitCount ? Number(user.visitCount) + 1 : 0
       });
 
       let updatedUser = await userModel.findOne({ _id: user._id }).lean().exec();
@@ -490,104 +490,294 @@ router.get('/countries', async function (req, res) {
 
 
 //function to update social login
-async function updateUser(id, name, email, userId, imgUrl, androidToken) {
-  const updatedUser = await userModel.findOne({ _id: id }).lean().exec();
-  updatedUser.name = name;
-  updatedUser.email = email;
-  updatedUser.user_id = userId;
-  updatedUser.img_url = imgUrl;
-  // updatedUser.auth_token = authToken;
-  updatedUser.androidToken = androidToken;
-  await updatedUser;
-  return updatedUser;
+async function updateUser(id, name, email, userId, imgUrl, androidToken, loginType) {
+  let updatedUser = await userModel.findOne({ _id: id }).lean().exec();
+  // updatedUser.name = name;
+  // updatedUser.email = email;
+  // updatedUser.user_id = userId;
+  // updatedUser.img_url = imgUrl;
+  // // updatedUser.auth_token = authToken;
+  // updatedUser.androidToken = androidToken;
+  // updatedUser.visitorCount=
+  // await updatedUser.save();
+  let visitCount;
+  visitCount = Number(updatedUser.visitCount) + 1;
+  await userModel.updateOne({ _id: id },
+    {
+      loginType: loginType,
+      name: name,
+      email: email,
+      androidToken: androidToken,
+      user_id: userId,
+      img_url: imgUrl,
+      visitCount: visitCount
+    });
+
+  return true;
+  // return updatedUser;
 }
 
 //Social login -mongodb
 router.post('/socialLogin', async function (req, res) {
   try {
-    let { name, email, socialId, imgUrl, androidToken } = req.body;
-    let checkExisitingUser = null;;
+    let { name, email, socialId, imgUrl, androidToken, loginType } = req.body;
+    let checkExisitingUser = null;
 
     const getVisitorDetails = await visitorModel.findOne({ androidToken: androidToken }).lean().exec();
 
-    if (email) {
-      let userGetData;
-      checkExisitingUser = await userModel.findOne({ email: email }).lean().exec();
-      if (checkExisitingUser === null) {
-        let socialUserAdded = await userModel.create({ name: name, email: email, user_id: socialId, img_url: imgUrl, androidToken: androidToken });
-        if (!socialUserAdded.hasOwnProperty('coins')) {
-          socialUserAdded.coins = 0;
-        }
+    //fb login
+    if (loginType === 1) {
+      //only name ,socialId,imgUrl,androidToken pass
+      if (socialId) {
+        let getData;
+        checkExisitingUser = await userModel.findOne({ user_id: socialId, loginType: 1 }).lean().exec();
+        if (checkExisitingUser === null) {
+          let socialUserAdded = await userModel.create({ name: name, email: email, user_id: socialId, img_url: imgUrl, androidToken: androidToken, loginType: 1 });
+          if (!socialUserAdded.hasOwnProperty('coins')) {
+            socialUserAdded.coins = 0;
+          }
+          if (!socialUserAdded.hasOwnProperty('amount')) {
+            socialUserAdded.amount = 0;
+          }
 
-        if (!socialUserAdded.hasOwnProperty('amount')) {
-          socialUserAdded.amount = 0;
-        }
+          if (!socialUserAdded.hasOwnProperty('visitCount')) {
+            socialUserAdded.visitCount = 0;
+          }
 
-        if (getVisitorDetails) {
-          socialUserAdded.messages = getVisitorDetails.messages && getVisitorDetails.messages.length ? getVisitorDetails.messages : []
-          await socialUserAdded.save()
-        }
-        userGetData = await userModel.findOne({ email: email }).lean().exec();
 
-        return res.json({ status: 200, msg: 'Social Login Sucessful', data: userGetData });
+          if (getVisitorDetails) {
+            socialUserAdded.messages = getVisitorDetails.messages && getVisitorDetails.messages.length ? getVisitorDetails.messages : []
+            await userModel.update({ _id: socialUserAdded._id },
+              {
+                messages: socialUserAdded.messages
+              })
+          }
+          getData = await userModel.findOne({ user_id: socialId, loginType: 1 }).lean().exec();
+          console.log('getData', getData);
+          return res.json({ status: 200, msg: 'Social Login Sucessful', data: getData });
+        }
+        else {
+          await updateUser(checkExisitingUser._id, name, email, socialId, imgUrl, androidToken, loginType)
+          getData = await userModel.findOne({ _id: checkExisitingUser._id, loginType: 1 }).lean().exec();
+          if (!getData.hasOwnProperty('coins')) {
+            getData.coins = 0;
+          }
+          if (!getData.hasOwnProperty('amount')) {
+            getData.amount = 0;
+          }
+
+          if (!getData.hasOwnProperty('visitCount')) {
+            getData.visitCount = 0;
+          }
+
+
+          if (getVisitorDetails) {
+            getData.messages = !checkExisitingUser.messages && checkExisitingUser.messages.length ? checkExisitingUser.messages : getVisitorDetails.messages && getVisitorDetails.messages.length ? getVisitorDetails.messages : []
+            await userModel.update({ _id: getData._id },
+              {
+                messages: getData.messages
+              })
+          }
+
+          return res.json({ status: 200, msg: 'Social Login Sucessful', data: getData });
+        }
       }
       else {
-        let updatedUser = await updateUser(checkExisitingUser._id, name, email, socialId, imgUrl, androidToken)
-        if (!updatedUser.hasOwnProperty('coins')) {
-          updatedUser.coins = 0;
-        }
-
-        if (!updatedUser.hasOwnProperty('amount')) {
-          updatedUser.amount = 0;
-        }
-        if (getVisitorDetails) {
-          updatedUser.messages = checkExisitingUser.messages && checkExisitingUser.messages.length ? checkExisitingUser.messages : getVisitorDetails.messages && getVisitorDetails.messages.length ? getVisitorDetails.messages : []
-          await updatedUser.save()
-        }
-        userGetData = await userModel.findOne({ email: email }).lean().exec();
-        return res.json({ status: 200, msg: 'Social Login Sucessful', data: userGetData });
+        return res.json({ status: 400, msg: 'Please provide social id for fb login..' })
       }
     }
-    else if (socialId) {
-      let getData;
-      checkExisitingUser = await userModel.findOne({ user_id: socialId }).lean().exec();
-      if (checkExisitingUser === null) {
-        let socialUserAdded = await userModel.create({ name: name, email: email, user_id: socialId, img_url: imgUrl, auth_token: authToken, androidToken: androidToken });
-        if (!socialUserAdded.hasOwnProperty('coins')) {
-          socialUserAdded.coins = 0;
-        }
-        if (!socialUserAdded.hasOwnProperty('amount')) {
-          socialUserAdded.amount = 0;
-        }
 
-        if (getVisitorDetails) {
-          socialUserAdded.messages = getVisitorDetails.messages && getVisitorDetails.messages.length ? getVisitorDetails.messages : []
-          await socialUserAdded.save()
+    //gmail login
+    if (loginType === 2) {
+      //only name ,socialId,imgUrl,email,androidToken pass
+
+      if (email) {
+        let userGetData;
+        checkExisitingUser = await userModel.findOne({ email: email, loginType: 2 }).lean().exec();
+        if (checkExisitingUser === null) {
+          let socialUserAdded = await userModel.create({ name: name, email: email, user_id: socialId, img_url: imgUrl, androidToken: androidToken, loginType: 2 });
+          if (!socialUserAdded.hasOwnProperty('coins')) {
+            socialUserAdded.coins = 0;
+          }
+
+          if (!socialUserAdded.hasOwnProperty('amount')) {
+            socialUserAdded.amount = 0;
+          }
+
+          if (!socialUserAdded.hasOwnProperty('visitCount')) {
+            socialUserAdded.visitCount = 0;
+          }
+
+
+          if (getVisitorDetails) {
+            socialUserAdded.messages = getVisitorDetails.messages && getVisitorDetails.messages.length ? getVisitorDetails.messages : []
+            await userModel.update({ _id: socialUserAdded._id },
+              {
+                messages: socialUserAdded.messages
+              });
+          }
+          userGetData = await userModel.findOne({ email: email, loginType: 2 }).lean().exec();
+
+          return res.json({ status: 200, msg: 'Social Login Sucessful', data: userGetData });
         }
-        getData = await userModel.findOne({ user_id: socialId }).lean().exec();
-        return res.json({ status: 200, msg: 'Social Login Sucessful', data: getData });
+        else {
+          await updateUser(checkExisitingUser._id, name, email, socialId, imgUrl, androidToken, loginType);
+          userGetData = await userModel.findOne({ email: email, loginType: 2 }).lean().exec();
+          if (!userGetData.hasOwnProperty('coins')) {
+            userGetData.coins = 0;
+          }
+
+          if (!userGetData.hasOwnProperty('amount')) {
+            userGetData.amount = 0;
+          }
+          if (!userGetData.hasOwnProperty('visitCount')) {
+            userGetData.visitCount = 0;
+          }
+
+
+          if (getVisitorDetails) {
+            userGetData.messages = checkExisitingUser.messages && checkExisitingUser.messages.length ? checkExisitingUser.messages : getVisitorDetails.messages && getVisitorDetails.messages.length ? getVisitorDetails.messages : []
+            await userModel.update({ _id: userGetData._id },
+              {
+                messages: userGetData.messages
+              });
+          }
+          return res.json({ status: 200, msg: 'Social Login Sucessful', data: userGetData });
+        }
       }
-      else {
-        let updatedUser = await updateUser(checkExisitingUser._id, name, email, socialId, authToken, imgUrl, androidToken)
-        if (!updatedUser.hasOwnProperty('coins')) {
-          updatedUser.coins = 0;
-        }
-        if (!updatedUser.hasOwnProperty('amount')) {
-          updatedUser.amount = 0;
-        }
+      else if (socialId) {
+        let getData;
+        checkExisitingUser = await userModel.findOne({ user_id: socialId, loginType: 2 }).lean().exec();
+        if (checkExisitingUser === null) {
+          let socialUserAdded = await userModel.create({ name: name, email: email, user_id: socialId, img_url: imgUrl, androidToken: androidToken, loginType: 2 });
+          if (!socialUserAdded.hasOwnProperty('coins')) {
+            socialUserAdded.coins = 0;
+          }
+          if (!socialUserAdded.hasOwnProperty('amount')) {
+            socialUserAdded.amount = 0;
+          }
+          if (!socialUserAdded.hasOwnProperty('visit')) {
+            socialUserAdded.visitCount = 0;
+          }
 
-        if (getVisitorDetails) {
-          updatedUser.messages = !checkExisitingUser.messages && checkExisitingUser.messages.length ? checkExisitingUser.messages : getVisitorDetails.messages && getVisitorDetails.messages.length ? getVisitorDetails.messages : []
-          await updatedUser.save()
-        }
 
-        getData = await userModel.findOne({ user_id: socialId }).lean().exec();
-        return res.json({ status: 200, msg: 'Social Login Sucessful', data: getData });
+          if (getVisitorDetails) {
+            socialUserAdded.messages = getVisitorDetails.messages && getVisitorDetails.messages.length ? getVisitorDetails.messages : []
+            await userModel.update({ _id: socialUserAdded._id },
+              {
+                messages: socialUserAdded.messages
+              })
+          }
+          getData = await userModel.findOne({ user_id: socialId, loginType: 2 }).lean().exec();
+          return res.json({ status: 200, msg: 'Social Login Sucessful', data: getData });
+        }
+        else {
+          await updateUser(checkExisitingUser._id, name, email, socialId, imgUrl, androidToken, loginType)
+          getData = await userModel.findOne({ user_id: socialId, loginType: 2 }).lean().exec();
+          if (!getData.hasOwnProperty('coins')) {
+            getData.coins = 0;
+          }
+          if (!getData.hasOwnProperty('amount')) {
+            getData.amount = 0;
+          }
+
+          if (!getData.hasOwnProperty('visitCount')) {
+            getData.visitCount = 0;
+          }
+
+
+          if (getVisitorDetails) {
+            getData.messages = !checkExisitingUser.messages && checkExisitingUser.messages.length ? checkExisitingUser.messages : getVisitorDetails.messages && getVisitorDetails.messages.length ? getVisitorDetails.messages : []
+            await userModel.update({ _id: getData._id },
+              {
+                messages: getData.messages
+              })
+          }
+
+          return res.json({ status: 200, msg: 'Social Login Sucessful', data: getData });
+        }
       }
     }
+
+
+    // if (email) {
+    //   let userGetData;
+    //   checkExisitingUser = await userModel.findOne({ email: email }).lean().exec();
+    //   if (checkExisitingUser === null) {
+    //     let socialUserAdded = await userModel.create({ name: name, email: email, user_id: socialId, img_url: imgUrl, androidToken: androidToken });
+    //     if (!socialUserAdded.hasOwnProperty('coins')) {
+    //       socialUserAdded.coins = 0;
+    //     }
+
+    //     if (!socialUserAdded.hasOwnProperty('amount')) {
+    //       socialUserAdded.amount = 0;
+    //     }
+
+    //     if (getVisitorDetails) {
+    //       socialUserAdded.messages = getVisitorDetails.messages && getVisitorDetails.messages.length ? getVisitorDetails.messages : []
+    //       await socialUserAdded.save()
+    //     }
+    //     userGetData = await userModel.findOne({ email: email }).lean().exec();
+
+    //     return res.json({ status: 200, msg: 'Social Login Sucessful', data: userGetData });
+    //   }
+    //   else {
+    //     let updatedUser = await updateUser(checkExisitingUser._id, name, email, socialId, imgUrl, androidToken)
+    //     if (!updatedUser.hasOwnProperty('coins')) {
+    //       updatedUser.coins = 0;
+    //     }
+
+    //     if (!updatedUser.hasOwnProperty('amount')) {
+    //       updatedUser.amount = 0;
+    //     }
+    //     if (getVisitorDetails) {
+    //       updatedUser.messages = checkExisitingUser.messages && checkExisitingUser.messages.length ? checkExisitingUser.messages : getVisitorDetails.messages && getVisitorDetails.messages.length ? getVisitorDetails.messages : []
+    //       await updatedUser.save()
+    //     }
+    //     userGetData = await userModel.findOne({ email: email }).lean().exec();
+    //     return res.json({ status: 200, msg: 'Social Login Sucessful', data: userGetData });
+    //   }
+    // }
+    // else if (socialId) {
+    //   let getData;
+    //   checkExisitingUser = await userModel.findOne({ user_id: socialId }).lean().exec();
+    //   if (checkExisitingUser === null) {
+    //     let socialUserAdded = await userModel.create({ name: name, email: email, user_id: socialId, img_url: imgUrl, auth_token: authToken, androidToken: androidToken });
+    //     if (!socialUserAdded.hasOwnProperty('coins')) {
+    //       socialUserAdded.coins = 0;
+    //     }
+    //     if (!socialUserAdded.hasOwnProperty('amount')) {
+    //       socialUserAdded.amount = 0;
+    //     }
+
+    //     if (getVisitorDetails) {
+    //       socialUserAdded.messages = getVisitorDetails.messages && getVisitorDetails.messages.length ? getVisitorDetails.messages : []
+    //       await socialUserAdded.save()
+    //     }
+    //     getData = await userModel.findOne({ user_id: socialId }).lean().exec();
+    //     return res.json({ status: 200, msg: 'Social Login Sucessful', data: getData });
+    //   }
+    //   else {
+    //     let updatedUser = await updateUser(checkExisitingUser._id, name, email, socialId, authToken, imgUrl, androidToken)
+    //     if (!updatedUser.hasOwnProperty('coins')) {
+    //       updatedUser.coins = 0;
+    //     }
+    //     if (!updatedUser.hasOwnProperty('amount')) {
+    //       updatedUser.amount = 0;
+    //     }
+
+    //     if (getVisitorDetails) {
+    //       updatedUser.messages = !checkExisitingUser.messages && checkExisitingUser.messages.length ? checkExisitingUser.messages : getVisitorDetails.messages && getVisitorDetails.messages.length ? getVisitorDetails.messages : []
+    //       await updatedUser.save()
+    //     }
+
+    //     getData = await userModel.findOne({ user_id: socialId }).lean().exec();
+    //     return res.json({ status: 200, msg: 'Social Login Sucessful', data: getData });
+    //   }
+    // }
 
   } catch (error) {
-    return res.json({ status: 500, msg: 'Error in social login', err: error })
+    return res.json({ status: 500, msg: 'Error in social login', err: error.message })
   }
 });
 
@@ -762,7 +952,7 @@ router.post('/visitor', async function (req, res) {
     if (checkForTokenExists !== null) {
       await visitorModel.update({ _id: checkForTokenExists }, {
         androidToken: androidToken,
-        visitCount: checkForTokenExists.visitCount ? checkForTokenExists.visitCount + 1 : 0
+        visitCount: checkForTokenExists.visitCount ? Number(checkForTokenExists.visitCount) + 1 : 0
       });
       let addedVisitor = await visitorModel.findOne({ _id: checkForTokenExists._id });
 
@@ -1693,5 +1883,15 @@ router.post('/purchaseConfig', async (req, res) => {
   }
 
 })
+
+async function spliceArray(arr, getMessage) {
+  try {
+    arr.splice(0, 0, getMessage)
+    arr = arr.slice(0, arr.length - 1);
+    return arr;
+  } catch (error) {
+    throw error;
+  }
+}
 
 module.exports = router;
