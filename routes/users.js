@@ -520,6 +520,7 @@ async function updateUser(id, name, email, userId, imgUrl, androidToken, loginTy
 //Social login -mongodb
 router.post('/socialLogin', async function (req, res) {
   try {
+    console.log(' req.body', req.body);
     let { name, email, socialId, imgUrl, androidToken, loginType } = req.body;
     let checkExisitingUser = null;
 
