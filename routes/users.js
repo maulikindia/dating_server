@@ -524,8 +524,9 @@ router.post('/socialLogin', async function (req, res) {
     let { name, email, socialId, imgUrl, androidToken, loginType } = req.body;
     let checkExisitingUser = null;
 
+    loginType = parseInt(loginType)
+    console.log('loginType', loginType);
     const getVisitorDetails = await visitorModel.findOne({ androidToken: androidToken }).lean().exec();
-
     //fb login
     if (loginType === 1) {
       //only name ,socialId,imgUrl,androidToken pass
