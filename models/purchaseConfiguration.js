@@ -12,6 +12,10 @@ let purchaseConfigSchema = new mongoose.Schema({
         money:
         {
             type: mongoose.Schema.Types.Mixed
+        },
+        googleKey:
+        {
+            type: String
         }
     }],
 
@@ -27,6 +31,10 @@ let purchaseConfigSchema = new mongoose.Schema({
         money:
         {
             type: mongoose.Schema.Types.Mixed
+        },
+        googleKey:
+        {
+            type: String
         }
     }],
 
@@ -42,6 +50,10 @@ let purchaseConfigSchema = new mongoose.Schema({
         money:
         {
             type: mongoose.Schema.Types.Mixed
+        },
+        googleKey:
+        {
+            type: String
         }
     }],
 })
