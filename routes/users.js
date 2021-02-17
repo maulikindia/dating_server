@@ -434,31 +434,35 @@ router.post('/login', async function (req, res) {
     if (user === undefined || user === null) {
       return res.json({ status: 400, msg: 'Email or Password Invalid ,Try again later ' })
     } else {
-      await userModel.updateOne({ _id: user._id }, {
-        androidToken: androidToken,
-        visitCount: user.visitCount ? Number(user.visitCount) + 1 : 0
-      });
+      let visitCount;
+      visitCount = parseInt(user.visitCount) + 1;
+      let data = await userModel.findOneAndUpdate({ _id: user._id }, {
+        $set:
+        {
+          androidToken: androidToken,
+          visitCount: visitCount
+        }
+      }, { new: true });
 
-      let updatedUser = await userModel.findOne({ _id: user._id }).lean().exec();
-      if (!updatedUser.hasOwnProperty('coins')) {
-        updatedUser.coins = 0;
+      if (!data.hasOwnProperty('coins')) {
+        data.coins = 0;
       }
 
-      if (!updatedUser.hasOwnProperty('img_url')) {
-        updatedUser.img_url = null;
+      if (!data.hasOwnProperty('img_url')) {
+        data.img_url = null;
       }
 
-      if (!updatedUser.hasOwnProperty('visitCount')) {
-        updatedUser.visitCount = 0;
+      if (!data.hasOwnProperty('visitCount')) {
+        data.visitCount = 0;
       }
 
 
-      return res.json({ status: 200, msg: 'User loggedin sucessfully ', user: updatedUser })
+      return res.json({ status: 200, msg: 'User loggedin sucessfully ', user: data })
     }
 
 
   } catch (error) {
-    return res.json({ status: 500, msg: 'error while login ', err: error })
+    return res.json({ status: 500, msg: 'error while login ', err: error.message })
   }
 })
 
@@ -952,30 +956,35 @@ router.post('/visitor', async function (req, res) {
     const { androidToken } = req.body;
     const checkForTokenExists = await visitorModel.findOne({ androidToken: androidToken }).lean().exec();
     if (checkForTokenExists !== null) {
-      await visitorModel.update({ _id: checkForTokenExists }, {
-        androidToken: androidToken,
-        visitCount: checkForTokenExists.visitCount ? Number(checkForTokenExists.visitCount) + 1 : 0
-      });
-      let addedVisitor = await visitorModel.findOne({ _id: checkForTokenExists._id });
+      let visitCount;
+      visitCount = parseInt(checkForTokenExists.visitCount) + 1;
+      let getData = await visitorModel.findOneAndUpdate({ _id: checkForTokenExists._id }, {
+        $set:
+        {
+          androidToken: androidToken,
+          visitCount: visitCount
+        },
 
-      if (!addedVisitor.hasOwnProperty('coins')) {
-        addedVisitor.coins = 0;
+      }, { new: true });
+
+      if (!getData.hasOwnProperty('coins')) {
+        getData.coins = 0;
       }
 
-      if (!addedVisitor.hasOwnProperty('imgUrl')) {
-        addedVisitor.imgUrl = '';
+      if (!getData.hasOwnProperty('imgUrl')) {
+        getData.imgUrl = '';
       }
 
 
-      if (!addedVisitor.hasOwnProperty('amount')) {
-        addedVisitor.amount = 0;
+      if (!getData.hasOwnProperty('amount')) {
+        getData.amount = 0;
       }
 
-      if (!addedVisitor.hasOwnProperty('visitCount')) {
-        addedVisitor.visitCount = 0;
+      if (!getData.hasOwnProperty('visitCount')) {
+        getData.visitCount = 0;
       }
 
-      return res.json({ status: 200, msg: 'Visitor updated sucessfully', addedVisitor: addedVisitor });
+      return res.json({ status: 200, msg: 'Visitor updated sucessfully', addedVisitor: getData });
     }
     else {
       let addedVisitor = await visitorModel.create({ androidToken });
