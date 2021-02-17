@@ -452,9 +452,9 @@ router.post('/login', async function (req, res) {
         data.img_url = null;
       }
 
-      if (!data.hasOwnProperty('visitCount')) {
-        data.visitCount = 0;
-      }
+      // if (!data.hasOwnProperty('visitCount')) {
+      //   data.visitCount = 0;
+      // }
 
 
       return res.json({ status: 200, msg: 'User loggedin sucessfully ', user: data })
