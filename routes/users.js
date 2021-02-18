@@ -980,9 +980,9 @@ router.post('/visitor', async function (req, res) {
         getData.amount = 0;
       }
 
-      if (!getData.hasOwnProperty('visitCount')) {
-        getData.visitCount = 0;
-      }
+      // if (!getData.hasOwnProperty('visitCount')) {
+      //   getData.visitCount = 0;
+      // }
 
       return res.json({ status: 200, msg: 'Visitor updated sucessfully', addedVisitor: getData });
     }
